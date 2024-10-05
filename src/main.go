@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -45,6 +46,7 @@ func main() {
 						Action: func(c *cli.Context) error {
 							sessionId := time.Now().Unix()
 							socketPath := fmt.Sprintf("/tmp/nvim-socket-%d", sessionId)
+							browserScriptPath := fmt.Sprintf("/tmp/nvim-remote-helper-browser-%d", sessionId)
 							server := c.Args().Get(0)
 							directory := c.Args().Get(1)
 
@@ -74,17 +76,38 @@ func main() {
 								}()
 
 								nv.RegisterHandler("tunnel-port", makeTunnelHandler(server))
+								nv.RegisterHandler("open-url", handleOpenUrl)
 
 								batch := nv.NewBatch()
 
 								// Let nvim know the channel id so it can send us messages.
-								batch.Command(fmt.Sprintf("let $NVIM_REMOTE_HELPER_CHANNEL_ID=%d", nv.ChannelID()))
+								batch.Command(fmt.Sprintf(`let $NVIM_REMOTE_HELPER_CHANNEL_ID="%d"`, nv.ChannelID()))
 								// Set $BROWSER so the remote machine can open a browser locally.
-								// TODO Actually get this script to work.
-								batch.Command(fmt.Sprintf("let $BROWSER='/tmp/nvim-remote-helper-browser-%d'", sessionId))
+								batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, browserScriptPath))
 
 								// Add NvimRemoteHelperTunnelPort command to nvim.
 								batch.Command("command! -nargs=1 NvimRemoteHelperTunnelPort call rpcnotify(str2nr($NVIM_REMOTE_HELPER_CHANNEL_ID), 'tunnel-port', [<f-args>])")
+								batch.Command("command! -nargs=1 NvimRemoteHelperOpenUrl call rpcnotify(str2nr($NVIM_REMOTE_HELPER_CHANNEL_ID), 'open-url', [<f-args>])")
+
+								var output any
+								batch.ExecLua(`
+local browser_script_path, socket_path, channel_id = ...
+
+local script_contents = [[
+#!/bin/sh
+
+SOCKET_PATH="%s"
+CHANNEL_ID="%s"
+
+exec nvim --server "$SOCKET_PATH" --remote-expr "rpcnotify(str2nr($CHANNEL_ID), 'open-url', ['$1'])" > /dev/null
+]]
+script_contents = string.format(script_contents, socket_path, channel_id)
+
+vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
+os.execute('chmod +x ' .. browser_script_path)
+
+return true
+								`, &output, browserScriptPath, socketPath, nv.ChannelID())
 
 								if err := batch.Execute(); err != nil {
 									log.Fatalf("Error while preparing remote nvim: %v", err)
@@ -160,15 +183,18 @@ func startLocalEditor(socketPath string, args []string) {
 	}
 
 	if len(replacedArgs) == 0 {
-		replacedArgs = []string{"nvim-qt", "--server", socketPath}
+		replacedArgs = []string{"nvim", "--server", socketPath, "--remote-ui"}
 	}
 
 	log.Printf("Starting local editor: %v", replacedArgs)
 
 	// editorCommand := exec.Command("nvim-qt", "--server", socketPath)
 	editorCommand := exec.Command(replacedArgs[0], replacedArgs[1:]...)
-	// editorCommand.Stdout = os.Stdout
-	// editorCommand.Stderr = os.Stderr
+	if replacedArgs[0] == "nvim" {
+		editorCommand.Stdin = os.Stdin
+		editorCommand.Stdout = os.Stdout
+		editorCommand.Stderr = os.Stderr
+	}
 
 	if err := editorCommand.Run(); err != nil {
 		log.Printf("Error running editor: %v", err)
@@ -199,6 +225,28 @@ func makeTunnelHandler(server string) func(*nvim.Nvim, []string) {
 				log.Printf("Error waiting for command: %v", err)
 			}
 		}()
+	}
+}
+
+func handleOpenUrl(v *nvim.Nvim, args []string) {
+	goos := runtime.GOOS
+	url := args[0]
+
+	// if url == "" || !strings.HasPrefix(url, "http://") || !strings.HasPrefix(url, "https://") {
+	// 	log.Printf("Invalid url: %s", url)
+	// 	return
+	// }
+
+	log.Printf("Opening url: %s", url)
+
+	if goos == "darwin" {
+		exec.Command("open", url).Run()
+	} else if goos == "linux" {
+		exec.Command("xdg-open", url).Run()
+	} else if goos == "windows" {
+		exec.Command("start", "", url).Run()
+	} else {
+		log.Printf("Don't know how to open url on %s", goos)
 	}
 }
 
