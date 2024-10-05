@@ -16,7 +16,7 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:  "nvim-remote-helper",
+		Name:  "nvrh",
 		Usage: "Helps work with a remote nvim instance",
 
 		Commands: []*cli.Command{
@@ -45,8 +45,8 @@ func main() {
 
 						Action: func(c *cli.Context) error {
 							sessionId := time.Now().Unix()
-							socketPath := fmt.Sprintf("/tmp/nvim-socket-%d", sessionId)
-							browserScriptPath := fmt.Sprintf("/tmp/nvim-remote-helper-browser-%d", sessionId)
+							socketPath := fmt.Sprintf("/tmp/nvrh-socket-%d", sessionId)
+							browserScriptPath := fmt.Sprintf("/tmp/nvrh-browser-%d", sessionId)
 							server := c.Args().Get(0)
 							directory := c.Args().Get(1)
 
@@ -81,14 +81,16 @@ func main() {
 								batch := nv.NewBatch()
 
 								// Let nvim know the channel id so it can send us messages.
-								batch.Command(fmt.Sprintf(`let $NVIM_REMOTE_HELPER_CHANNEL_ID="%d"`, nv.ChannelID()))
+								batch.Command(fmt.Sprintf(`let $NVRH_CHANNEL_ID="%d"`, nv.ChannelID()))
 								// Set $BROWSER so the remote machine can open a browser locally.
 								batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, browserScriptPath))
 
-								// Add NvimRemoteHelperTunnelPort command to nvim.
-								batch.Command("command! -nargs=1 NvimRemoteHelperTunnelPort call rpcnotify(str2nr($NVIM_REMOTE_HELPER_CHANNEL_ID), 'tunnel-port', [<f-args>])")
-								batch.Command("command! -nargs=1 NvimRemoteHelperOpenUrl call rpcnotify(str2nr($NVIM_REMOTE_HELPER_CHANNEL_ID), 'open-url', [<f-args>])")
+								// Add command to tunnel port.
+								batch.Command("command! -nargs=1 NvrhTunnelPort call rpcnotify(str2nr($NVRH_CHANNEL_ID), 'tunnel-port', [<f-args>])")
+								// Add command to open url.
+								batch.Command("command! -nargs=1 NvrhOpenUrl call rpcnotify(str2nr($NVRH_CHANNEL_ID), 'open-url', [<f-args>])")
 
+								// Prepare the browser script.
 								var output any
 								batch.ExecLua(`
 local browser_script_path, socket_path, channel_id = ...
