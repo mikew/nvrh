@@ -24,7 +24,6 @@ func main() {
 
 				Subcommands: []*cli.Command{
 					{
-
 						Name:      "open",
 						Usage:     "Open a remote nvim instance in a local editor",
 						Category:  "client",
@@ -88,7 +87,7 @@ func main() {
 								batch.Command("command! -nargs=1 NvimRemoteHelperTunnelPort call rpcnotify(str2nr($NVIM_REMOTE_HELPER_CHANNEL_ID), 'tunnel-port', [<f-args>])")
 
 								if err := batch.Execute(); err != nil {
-									panic(err)
+									log.Fatalf("Error while preparing remote nvim: %v", err)
 								}
 
 								log.Print("Connected to nvim")
@@ -208,6 +207,8 @@ func waitForNvim(socketPath string) (*nvim.Nvim, error) {
 		nv, err := nvim.Dial(socketPath)
 
 		if err == nil {
+			// TODO Can probably trim down the data passed over the wire by
+			// using another method.
 			_, err := nv.APIInfo()
 
 			if err == nil {
