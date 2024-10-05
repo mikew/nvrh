@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -ex
+
+ARCHS=(amd64 arm64)
+OSES=(linux darwin windows)
+
+for os in "${OSES[@]}"; do
+  for arch in "${ARCHS[@]}"; do
+    GOOS="$os" GOARCH="$arch" go build -o "dist/$(basename "$PWD")-$os-$arch" ./src/main.go
+  done
+done
