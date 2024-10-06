@@ -40,6 +40,7 @@ var CliClientOpenCommand = cli.Command{
 		&cli.StringSliceFlag{
 			Name:  "local-editor",
 			Usage: "Local editor to use. `{{SOCKET_PATH}}` will be replaced with the socket path",
+			Value: cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
 	},
 
@@ -51,7 +52,7 @@ var CliClientOpenCommand = cli.Command{
 		server := c.Args().Get(0)
 		directory := c.Args().Get(1)
 		serverEnvPairs := c.StringSlice("server-env")
-		localEditor := c.StringSlice("server-env")
+		localEditor := c.StringSlice("local-editor")
 
 		if server == "" {
 			return fmt.Errorf("<server> is required")
@@ -124,10 +125,6 @@ func startLocalEditor(socketPath string, args []string) {
 	replacedArgs := make([]string, len(args))
 	for i, arg := range args {
 		replacedArgs[i] = strings.Replace(arg, "{{SOCKET_PATH}}", socketPath, -1)
-	}
-
-	if len(replacedArgs) == 0 {
-		replacedArgs = []string{"nvim", "--server", socketPath, "--remote-ui"}
 	}
 
 	log.Printf("Starting local editor: %v", replacedArgs)

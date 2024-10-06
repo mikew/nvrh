@@ -39,7 +39,7 @@ CATEGORY:
 
 OPTIONS:
    --server-env value [ --server-env value ]                          Environment variables to set on the remote server
-   --local-editor {{SOCKET_PATH}} [ --local-editor {{SOCKET_PATH}} ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path
+   --local-editor {{SOCKET_PATH}} [ --local-editor {{SOCKET_PATH}} ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path (default: "nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui")
    --help, -h                                                         show help
 ```
 
