@@ -1,4 +1,4 @@
-module nvim-remote-helper
+module nvrh
 
 go 1.23.1
 
