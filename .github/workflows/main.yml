@@ -1,0 +1,80 @@
+name: main
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-20.04
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bumping the version in each build is easier than setting up a new job
+      # and transferring over artifacts.
+      # We do it again in the deploy job and then commit that along with other
+      # files generated during that phase.
+      - run: npx commit-and-tag-version --skip.commit --skip.tag
+        shell: bash
+        if: endsWith(github.ref, '/main')
+
+      - run: ./script/build
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wadpunk-${{ matrix.platform }}-${{ runner.arch }}
+          retention-days: 7
+          path: |
+            dist/*
+
+  deploy:
+    needs:
+      - build
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v4
+        if: endsWith(github.ref, '/main')
+
+      # prepare-env: Push as github bot.
+      # https://github.community/t/github-actions-bot-email-address/17204/5
+      - name: Prep for git push
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        shell: bash
+        if: endsWith(github.ref, '/main')
+
+      - uses: actions/download-artifact@v4
+        if: endsWith(github.ref, '/main')
+
+      # This is CI specific, artifacts don't seem to be stored with a helpful
+      # path.
+      - run: |
+          mkdir -p dist
+          cp -rl wadpunk-ubuntu-20.04-X64/* dist
+        shell: bash
+        if: endsWith(github.ref, '/main')
+
+      - run: ./script/deploy
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: endsWith(github.ref, '/main')
