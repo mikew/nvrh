@@ -39,7 +39,7 @@ var CliClientOpenCommand = cli.Command{
 
 		&cli.StringSliceFlag{
 			Name:  "local-editor",
-			Usage: "Local editor to use. {{SOCKET_PATH}}",
+			Usage: "Local editor to use. `{{SOCKET_PATH}}` will be replaced with the socket path",
 		},
 	},
 

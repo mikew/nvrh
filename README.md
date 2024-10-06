@@ -1,26 +1,24 @@
 # nvrh
 
-
-
 https://github.com/user-attachments/assets/aad16d20-cc78-44cd-8e9f-8412c87087eb
 
 nvrh (Neovim Remote Helper) aims to provide a simple way of working with a
 remote Neovim instance, like you would with VSCode Remote.
-
-## Features
-
-- Start Neovim on a remote machine.
-- Tunnel a the connection between your local and remote machines.
-- Start your editor locally, talking to your remote Neovim instance.
-- Provide an easy way to tunnel ports.
-- Provide an easy way to open URLs on your local machine.
 
 ## Installation
 
 Download the `nvrh` binary for your platform / architecture from [the latest
 release](https://github.com/mikew/nvrh/releases/latest).
 
-Put it somewhere on your `PATH` for convenience.
+Rename it to `nvrh` and put it somewhere on your `PATH` for convenience.
+
+## Features
+
+- Start Neovim on a remote machine.
+- Tunnel the connection between your local and remote machines.
+- Start your editor locally, talking to your remote Neovim instance.
+- Provide an easy way to tunnel ports.
+- Provide an easy way to open URLs on your local machine.
 
 ## Usage
 
@@ -34,15 +32,24 @@ NAME:
    nvrh client open - Open a remote nvim instance in a local editor
 
 USAGE:
-   nvrh client open [command options] <server> [directory]
+   nvrh client open [command options] <server> [remote-directory]
 
 CATEGORY:
    client
 
 OPTIONS:
-   --server-env value [ --server-env value ]      Environment variables to set on the remote server
-   --local-editor value [ --local-editor value ]  Local editor to use. {{SOCKET_PATH}}
-   --help, -h                                     show help
+   --server-env value [ --server-env value ]                          Environment variables to set on the remote server
+   --local-editor {{SOCKET_PATH}} [ --local-editor {{SOCKET_PATH}} ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path
+   --help, -h                                                         show help
+```
+
+By default it runs `nvim`, but you can run something else with
+
+```sh
+nvrh client open \
+  --local-editor nvim-qt \
+  --local-editor --server \
+  --local-editor {{SOCKET_PATH}}
 ```
 
 ### `:NvrhTunnelPort`
