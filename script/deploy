@@ -31,7 +31,7 @@ git tag "${RELEASE_TAG}"
 # Get the SHA of the latest commit
 COMMIT_SHA=$(git rev-parse HEAD)
 git push --force origin "${RELEASE_TAG}"
-# git push origin HEAD
+git push origin HEAD
 
 # Update the target for the release.
 gh release edit "--target=${COMMIT_SHA}" "${RELEASE_TAG}"
