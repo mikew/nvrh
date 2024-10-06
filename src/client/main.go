@@ -5,9 +5,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/neovim/go-client/nvim"
 	"github.com/urfave/cli/v2"
 
 	"nvrh/src/nvim_helpers"
@@ -70,8 +72,8 @@ var CliClientOpenCommand = cli.Command{
 				nv.Close()
 			}()
 
-			nv.RegisterHandler("tunnel-port", nvim_helpers.MakeTunnelHandler(server))
-			nv.RegisterHandler("open-url", nvim_helpers.HandleOpenUrl)
+			nv.RegisterHandler("tunnel-port", ssh_helpers.MakeRpcTunnelHandler(server))
+			nv.RegisterHandler("open-url", RpcHandleOpenUrl)
 
 			batch := nv.NewBatch()
 
@@ -88,23 +90,23 @@ var CliClientOpenCommand = cli.Command{
 			// Prepare the browser script.
 			var output any
 			batch.ExecLua(`
-				local browser_script_path, socket_path, channel_id = ...
+local browser_script_path, socket_path, channel_id = ...
 
-				local script_contents = [[
-				#!/bin/sh
+local script_contents = [[
+#!/bin/sh
 
-				SOCKET_PATH="%s"
-				CHANNEL_ID="%s"
+SOCKET_PATH="%s"
+CHANNEL_ID="%s"
 
-				exec nvim --server "$SOCKET_PATH" --remote-expr "rpcnotify(str2nr($CHANNEL_ID), 'open-url', ['$1'])" > /dev/null
-				]]
-				script_contents = string.format(script_contents, socket_path, channel_id)
+exec nvim --server "$SOCKET_PATH" --remote-expr "rpcnotify(str2nr($CHANNEL_ID), 'open-url', ['$1'])" > /dev/null
+]]
+script_contents = string.format(script_contents, socket_path, channel_id)
 
-				vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
-				os.execute('chmod +x ' .. browser_script_path)
+vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
+os.execute('chmod +x ' .. browser_script_path)
 
-				return true
-				`, &output, browserScriptPath, socketPath, nv.ChannelID())
+return true
+			`, &output, browserScriptPath, socketPath, nv.ChannelID())
 
 			if err := batch.Execute(); err != nil {
 				log.Fatalf("Error while preparing remote nvim: %v", err)
@@ -141,5 +143,27 @@ func startLocalEditor(socketPath string, args []string) {
 	if err := editorCommand.Run(); err != nil {
 		log.Printf("Error running editor: %v", err)
 		return
+	}
+}
+
+func RpcHandleOpenUrl(v *nvim.Nvim, args []string) {
+	goos := runtime.GOOS
+	url := args[0]
+
+	// if url == "" || !strings.HasPrefix(url, "http://") || !strings.HasPrefix(url, "https://") {
+	// 	log.Printf("Invalid url: %s", url)
+	// 	return
+	// }
+
+	log.Printf("Opening url: %s", url)
+
+	if goos == "darwin" {
+		exec.Command("open", url).Run()
+	} else if goos == "linux" {
+		exec.Command("xdg-open", url).Run()
+	} else if goos == "windows" {
+		exec.Command("start", "", url).Run()
+	} else {
+		log.Printf("Don't know how to open url on %s", goos)
 	}
 }

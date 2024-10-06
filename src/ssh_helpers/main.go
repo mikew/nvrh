@@ -5,6 +5,8 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+
+	"github.com/neovim/go-client/nvim"
 )
 
 func StartRemoteNvim(server string, socketPath string, directory string, envPairs []string) {
@@ -65,4 +67,30 @@ func buildRemoteCommand(socketPath string, directory string, envPairs []string) 
 		socketPath,
 		directory,
 	)
+}
+
+func MakeRpcTunnelHandler(server string) func(*nvim.Nvim, []string) {
+	return func(v *nvim.Nvim, args []string) {
+		go func() {
+			log.Printf("Tunneling %s:%s", server, args[0])
+
+			sshCommand := exec.Command(
+				"ssh",
+				"-NL",
+				fmt.Sprintf("%s:0.0.0.0:%s", args[0], args[0]),
+				server,
+			)
+
+			if err := sshCommand.Start(); err != nil {
+				log.Printf("Error starting command: %v", err)
+				return
+			}
+
+			defer sshCommand.Process.Kill()
+
+			if err := sshCommand.Wait(); err != nil {
+				log.Printf("Error waiting for command: %v", err)
+			}
+		}()
+	}
 }
