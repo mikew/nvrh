@@ -1,5 +1,9 @@
 # nvrh
 
+
+
+https://github.com/user-attachments/assets/aad16d20-cc78-44cd-8e9f-8412c87087eb
+
 nvrh (Neovim Remote Helper) aims to provide a simple way of working with a
 remote Neovim instance, like you would with VSCode Remote.
 
@@ -43,6 +47,8 @@ OPTIONS:
 
 ### `:NvrhTunnelPort`
 
+https://github.com/user-attachments/assets/4a8c302e-4e49-4f74-81a3-ac86ba33016a
+
 nvrh adds a `:NvrhTunnelPort` command to Neovim to tunnel a port between your
 local and remote machines.
 
@@ -52,6 +58,8 @@ local and remote machines.
 ```
 
 ### `:NvrhOpenUrl`
+
+https://github.com/user-attachments/assets/04f9eea3-58a6-4bff-a155-8134ecdeaf2b
 
 nvrh adds a `:NvrhOpenUrl` command to Neovim to open a URL on your local machine.
 
