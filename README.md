@@ -48,6 +48,7 @@ By default it runs `nvim`, but you can run something else with
 ```sh
 nvrh client open \
   --local-editor nvim-qt \
+  --local-editor --nofork \
   --local-editor --server \
   --local-editor {{SOCKET_PATH}}
 ```
