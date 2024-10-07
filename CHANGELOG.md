@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.6 (2024-10-07)
+
+
+### Features
+
+* Add `--version` support ([#14](https://github.com/mikew/nvrh/issues/14)) ([5ca2a0a](https://github.com/mikew/nvrh/commit/5ca2a0a189123df443e8543b591770d7ca510b30))
+
 ## 0.1.5 (2024-10-07)
 
 ## 0.1.4 (2024-10-06)
