@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.7 (2024-10-08)
+
+
+### Bug Fixes
+
+* `open-url` url guard and ssh `-t` flag ([#16](https://github.com/mikew/nvrh/issues/16)) ([b041de3](https://github.com/mikew/nvrh/commit/b041de32b589b12166c92f458373bc7b6eb447aa))
+
 ## 0.1.6 (2024-10-07)
 
 
