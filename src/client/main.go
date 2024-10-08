@@ -129,7 +129,6 @@ func startLocalEditor(socketPath string, args []string) {
 
 	log.Printf("Starting local editor: %v", replacedArgs)
 
-	// editorCommand := exec.Command("nvim-qt", "--server", socketPath)
 	editorCommand := exec.Command(replacedArgs[0], replacedArgs[1:]...)
 	if replacedArgs[0] == "nvim" {
 		editorCommand.Stdin = os.Stdin
@@ -147,10 +146,10 @@ func RpcHandleOpenUrl(v *nvim.Nvim, args []string) {
 	goos := runtime.GOOS
 	url := args[0]
 
-	// if url == "" || !strings.HasPrefix(url, "http://") || !strings.HasPrefix(url, "https://") {
-	// 	log.Printf("Invalid url: %s", url)
-	// 	return
-	// }
+	if url == "" || !(strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")) {
+		log.Printf("Invalid url: %s", url)
+		return
+	}
 
 	log.Printf("Opening url: %s", url)
 
