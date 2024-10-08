@@ -17,8 +17,8 @@ func StartRemoteNvim(server string, socketPath string, directory string, envPair
 		"ssh",
 		"-L",
 		fmt.Sprintf("%s:%s", socketPath, socketPath),
-		server,
 		"-t",
+		server,
 		// TODO Not really sure if this is better than piping it as exampled
 		// below.
 		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommand),
