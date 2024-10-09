@@ -184,7 +184,7 @@ func RpcHandleOpenUrl(v *nvim.Nvim, args []string) {
 	} else if goos == "linux" {
 		exec.Command("xdg-open", url).Run()
 	} else if goos == "windows" {
-		exec.Command("start", "", url).Run()
+		exec.Command("cmd", "/c", "start", url).Run()
 	} else {
 		log.Printf("Don't know how to open url on %s", goos)
 	}
