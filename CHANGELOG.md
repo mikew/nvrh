@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.8 (2024-10-09)
+
+
+### Features
+
+* `--use-ports` option ([#18](https://github.com/mikew/nvrh/issues/18)) ([67431f7](https://github.com/mikew/nvrh/commit/67431f7014b0e131c7a8cabf84f21e06e46760e3)), closes [#17](https://github.com/mikew/nvrh/issues/17) [#2](https://github.com/mikew/nvrh/issues/2)
+
 ## 0.1.7 (2024-10-08)
 
 
