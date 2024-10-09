@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -ex
 
-ARCHS=(amd64 arm64)
-OSES=(linux darwin windows)
+ARCHS=(
+  amd64
+  arm64
+)
+OSES=(
+  linux
+  darwin
+  windows
+)
 
 cp manifest.json src/
 
@@ -10,4 +17,8 @@ for os in "${OSES[@]}"; do
   for arch in "${ARCHS[@]}"; do
     GOOS="$os" GOARCH="$arch" go build -o "dist/$(basename "$PWD")-$os-$arch" ./src/main.go
   done
+done
+
+find ./dist -name '*-windows-*' -not -name '*.exe' | while read -r line; do
+  mv "$line" "$line.exe"
 done
