@@ -3,22 +3,24 @@ package ssh_helpers
 import (
 	"fmt"
 	"log"
+	"nvrh/src/context"
 	"os/exec"
 	"strings"
 
 	"github.com/neovim/go-client/nvim"
 )
 
-func StartRemoteNvim(server string, socketPath string, directory string, envPairs []string) {
-	nvimCommand := buildRemoteCommand(socketPath, directory, envPairs)
+func StartRemoteNvim(nvrhContext context.NvrhContext) {
+	nvimCommand := buildRemoteCommand(nvrhContext)
 	log.Printf("Starting remote nvim: %s", nvimCommand)
 
+	tunnel := fmt.Sprintf("%s:%s", nvrhContext.LocalSocketPath, nvrhContext.RemoteSocketPath)
 	sshCommand := exec.Command(
 		"ssh",
 		"-L",
-		fmt.Sprintf("%s:%s", socketPath, socketPath),
+		tunnel,
 		"-t",
-		server,
+		nvrhContext.Server,
 		// TODO Not really sure if this is better than piping it as exampled
 		// below.
 		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommand),
@@ -55,17 +57,17 @@ func StartRemoteNvim(server string, socketPath string, directory string, envPair
 	}
 }
 
-func buildRemoteCommand(socketPath string, directory string, envPairs []string) string {
+func buildRemoteCommand(nvrhContext context.NvrhContext) string {
 	envPairsString := ""
-	if len(envPairs) > 0 {
-		envPairsString = strings.Join(envPairs, " ")
+	if len(nvrhContext.RemoteEnv) > 0 {
+		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
 	}
 
 	return fmt.Sprintf(
 		"%s nvim --headless --listen \"%s\" --cmd \"cd %s\"",
 		envPairsString,
-		socketPath,
-		directory,
+		nvrhContext.RemoteSocketOrPort(),
+		nvrhContext.RemoteDirectory,
 	)
 }
 

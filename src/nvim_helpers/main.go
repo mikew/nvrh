@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"github.com/neovim/go-client/nvim"
+
+	"nvrh/src/context"
 )
 
-func WaitForNvim(socketPath string) (*nvim.Nvim, error) {
+func WaitForNvim(nvrhContext context.NvrhContext) (*nvim.Nvim, error) {
 	for {
-		nv, err := nvim.Dial(socketPath)
+		nv, err := nvim.Dial(nvrhContext.LocalSocketOrPort())
 
 		if err == nil {
 			// TODO Can probably trim down the data passed over the wire by

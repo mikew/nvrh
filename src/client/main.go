@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/neovim/go-client/nvim"
 	"github.com/urfave/cli/v2"
 
+	"nvrh/src/context"
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/ssh_helpers"
 )
@@ -45,23 +47,30 @@ var CliClientOpenCommand = cli.Command{
 	},
 
 	Action: func(c *cli.Context) error {
-		sessionId := time.Now().Unix()
-		socketPath := fmt.Sprintf("/tmp/nvrh-socket-%d", sessionId)
-		browserScriptPath := fmt.Sprintf("/tmp/nvrh-browser-%d", sessionId)
+		sessionId := fmt.Sprintf("%d", time.Now().Unix())
+		nvrhContext := context.NvrhContext{
+			SessionId:       sessionId,
+			Server:          c.Args().Get(0),
+			RemoteDirectory: c.Args().Get(1),
 
-		server := c.Args().Get(0)
-		directory := c.Args().Get(1)
-		serverEnvPairs := c.StringSlice("server-env")
-		localEditor := c.StringSlice("local-editor")
+			RemoteEnv:   c.StringSlice("server-env"),
+			LocalEditor: c.StringSlice("local-editor"),
 
-		if server == "" {
+
+			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
+			LocalSocketPath:  path.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
+
+			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
+		}
+
+		if nvrhContext.Server == "" {
 			return fmt.Errorf("<server> is required")
 		}
 
-		go ssh_helpers.StartRemoteNvim(server, socketPath, directory, serverEnvPairs)
+		go ssh_helpers.StartRemoteNvim(nvrhContext)
 
 		go func() {
-			nv, err := nvim_helpers.WaitForNvim(socketPath)
+			nv, err := nvim_helpers.WaitForNvim(nvrhContext)
 
 			if err != nil {
 				log.Printf("Error connecting to nvim: %v", err)
@@ -73,7 +82,7 @@ var CliClientOpenCommand = cli.Command{
 				nv.Close()
 			}()
 
-			nv.RegisterHandler("tunnel-port", ssh_helpers.MakeRpcTunnelHandler(server))
+			nv.RegisterHandler("tunnel-port", ssh_helpers.MakeRpcTunnelHandler(nvrhContext.Server))
 			nv.RegisterHandler("open-url", RpcHandleOpenUrl)
 
 			batch := nv.NewBatch()
@@ -81,7 +90,7 @@ var CliClientOpenCommand = cli.Command{
 			// Let nvim know the channel id so it can send us messages.
 			batch.Command(fmt.Sprintf(`let $NVRH_CHANNEL_ID="%d"`, nv.ChannelID()))
 			// Set $BROWSER so the remote machine can open a browser locally.
-			batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, browserScriptPath))
+			batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, nvrhContext.BrowserScriptPath))
 
 			// Add command to tunnel port.
 			batch.Command("command! -nargs=1 NvrhTunnelPort call rpcnotify(str2nr($NVRH_CHANNEL_ID), 'tunnel-port', [<f-args>])")
@@ -107,24 +116,24 @@ vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
 
 return true
-			`, &output, browserScriptPath, socketPath, nv.ChannelID())
+			`, &output, nvrhContext.BrowserScriptPath, nvrhContext.LocalSocketOrPort(), nv.ChannelID())
 
 			if err := batch.Execute(); err != nil {
 				log.Fatalf("Error while preparing remote nvim: %v", err)
 			}
 
 			log.Print("Connected to nvim")
-			startLocalEditor(socketPath, localEditor)
+			startLocalEditor(nvrhContext)
 		}()
 
 		select {}
 	},
 }
 
-func startLocalEditor(socketPath string, args []string) {
-	replacedArgs := make([]string, len(args))
-	for i, arg := range args {
-		replacedArgs[i] = strings.Replace(arg, "{{SOCKET_PATH}}", socketPath, -1)
+func startLocalEditor(nvrhContext context.NvrhContext) {
+	replacedArgs := make([]string, len(nvrhContext.LocalEditor))
+	for i, arg := range nvrhContext.LocalEditor {
+		replacedArgs[i] = strings.Replace(arg, "{{SOCKET_PATH}}", nvrhContext.LocalSocketOrPort(), -1)
 	}
 
 	log.Printf("Starting local editor: %v", replacedArgs)
