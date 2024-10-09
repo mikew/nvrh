@@ -15,6 +15,10 @@ func StartRemoteNvim(nvrhContext context.NvrhContext) {
 	log.Printf("Starting remote nvim: %s", nvimCommand)
 
 	tunnel := fmt.Sprintf("%s:%s", nvrhContext.LocalSocketPath, nvrhContext.RemoteSocketPath)
+	if nvrhContext.ShouldUsePorts {
+		tunnel = fmt.Sprintf("%d:0.0.0.0:%d", nvrhContext.PortNumber, nvrhContext.PortNumber)
+	}
+
 	sshCommand := exec.Command(
 		"ssh",
 		"-L",

@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path"
@@ -34,6 +35,12 @@ var CliClientOpenCommand = cli.Command{
 	ArgsUsage: "<server> [remote-directory]",
 
 	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:    "use-ports",
+			Usage:   "Use ports instead of sockets",
+			EnvVars: []string{"NVRH_CLIENT_USE_PORTS"},
+		},
+
 		&cli.StringSliceFlag{
 			Name:  "server-env",
 			Usage: "Environment variables to set on the remote server",
@@ -56,11 +63,21 @@ var CliClientOpenCommand = cli.Command{
 			RemoteEnv:   c.StringSlice("server-env"),
 			LocalEditor: c.StringSlice("local-editor"),
 
+			ShouldUsePorts: c.Bool("use-ports"),
 
 			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
 			LocalSocketPath:  path.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
+		}
+
+		// TODO Could really use a context to pass around instead of a bunch of
+		// args.
+		// socketPath := fmt.Sprintf("/tmp/nvrh-socket-%d", sessionId)
+		if nvrhContext.ShouldUsePorts {
+			min := 1025
+			max := 65535
+			nvrhContext.PortNumber = rand.IntN((max - min) + min)
 		}
 
 		if nvrhContext.Server == "" {
