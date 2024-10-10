@@ -37,8 +37,9 @@ var CliClientOpenCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "use-ports",
-			Usage:   "Use ports instead of sockets",
+			Usage:   "Use ports instead of sockets. Defaults to true on Windows",
 			EnvVars: []string{"NVRH_CLIENT_USE_PORTS"},
+			Value:   runtime.GOOS == "windows",
 		},
 
 		&cli.StringSliceFlag{
