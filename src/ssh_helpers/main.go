@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"nvrh/src/context"
+	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/neovim/go-client/nvim"
@@ -30,7 +32,9 @@ func StartRemoteNvim(nvrhContext context.NvrhContext) {
 		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommand),
 	)
 
-	// sshCommand.Stdout = os.Stdout
+	if runtime.GOOS == "windows" {
+		sshCommand.Stdout = os.Stdout
+	}
 	// sshCommand.Stderr = os.Stderr
 	// sshCommand.Stdin = os.Stdin
 

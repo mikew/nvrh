@@ -38,6 +38,7 @@ CATEGORY:
    client
 
 OPTIONS:
+   --use-ports                                                        Use ports instead of sockets. Defaults to true on Windows (default: false) [$NVRH_CLIENT_USE_PORTS]
    --server-env value [ --server-env value ]                          Environment variables to set on the remote server
    --local-editor {{SOCKET_PATH}} [ --local-editor {{SOCKET_PATH}} ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path (default: "nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui")
    --help, -h                                                         show help
