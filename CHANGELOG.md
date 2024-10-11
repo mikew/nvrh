@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.9 (2024-10-11)
+
+
+### Bug Fixes
+
+* Strange 255 exit code on Windows ([#19](https://github.com/mikew/nvrh/issues/19)) ([438df45](https://github.com/mikew/nvrh/commit/438df4593cfe0097f36405e38bb77f090c51425b))
+
 ## 0.1.8 (2024-10-09)
 
 
