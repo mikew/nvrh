@@ -21,6 +21,8 @@ type NvrhContext struct {
 	BrowserScriptPath string
 
 	CommandsToKill []*exec.Cmd
+
+	SshPath string
 }
 
 func (nc NvrhContext) LocalSocketOrPort() string {

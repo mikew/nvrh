@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 	"nvrh/src/context"
-	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/neovim/go-client/nvim"
@@ -22,7 +20,7 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 	}
 
 	sshCommand := exec.Command(
-		"ssh",
+		nvrhContext.SshPath,
 		"-L",
 		tunnel,
 		"-t",
@@ -32,9 +30,7 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString),
 	)
 
-	if runtime.GOOS == "windows" {
-		sshCommand.Stdout = os.Stdout
-	}
+	// sshCommand.Stdout = os.Stdout
 	// sshCommand.Stderr = os.Stderr
 	// sshCommand.Stdin = os.Stdin
 
@@ -76,12 +72,15 @@ func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []s
 			log.Printf("Tunneling %s:%s", nvrhContext.Server, args[0])
 
 			sshCommand := exec.Command(
-				"ssh",
+				nvrhContext.SshPath,
 				"-NL",
 				fmt.Sprintf("%s:0.0.0.0:%s", args[0], args[0]),
 				nvrhContext.Server,
 			)
 
+			// sshCommand.Stdout = os.Stdout
+			// sshCommand.Stderr = os.Stderr
+			// sshCommand.Stdin = os.Stdin
 			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, sshCommand)
 
 			if err := sshCommand.Start(); err != nil {
