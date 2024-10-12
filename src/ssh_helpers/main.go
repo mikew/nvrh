@@ -82,6 +82,11 @@ func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []s
 				nvrhContext.Server,
 			)
 
+			if runtime.GOOS == "windows" {
+				sshCommand.Stdout = os.Stdout
+			}
+			// sshCommand.Stderr = os.Stderr
+			// sshCommand.Stdin = os.Stdin
 			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, sshCommand)
 
 			if err := sshCommand.Start(); err != nil {
