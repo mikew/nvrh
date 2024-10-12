@@ -47,7 +47,7 @@ var CliClientOpenCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "ssh-path",
-			Usage:   "Path to SSH binary. Defaults to `ssh` on Unix, `C:\\Windows\\System32\\OpenSSH\\ssh.exe` on Windows",
+			Usage:   "Path to SSH binary. Defaults to ssh on Unix, C:\\Windows\\System32\\OpenSSH\\ssh.exe on Windows",
 			EnvVars: []string{"NVRH_CLIENT_SSH_PATH"},
 			Value:   defaultSshPath(),
 		},
@@ -66,7 +66,7 @@ var CliClientOpenCommand = cli.Command{
 
 		&cli.StringSliceFlag{
 			Name:  "local-editor",
-			Usage: "Local editor to use. `{{SOCKET_PATH}}` will be replaced with the socket path",
+			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
 			Value: cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
 	},
