@@ -22,7 +22,7 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 	}
 
 	sshCommand := exec.Command(
-		"ssh",
+		nvrhContext.SshPath,
 		"-L",
 		tunnel,
 		"-t",
@@ -76,7 +76,7 @@ func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []s
 			log.Printf("Tunneling %s:%s", nvrhContext.Server, args[0])
 
 			sshCommand := exec.Command(
-				"ssh",
+				nvrhContext.SshPath,
 				"-NL",
 				fmt.Sprintf("%s:0.0.0.0:%s", args[0], args[0]),
 				nvrhContext.Server,
