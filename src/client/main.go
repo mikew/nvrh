@@ -21,6 +21,14 @@ import (
 	"nvrh/src/ssh_helpers"
 )
 
+func defaultSshPath() string {
+	if runtime.GOOS == "windows" {
+		return "C:\\Windows\\System32\\OpenSSH\\ssh.exe"
+	}
+
+	return "ssh"
+}
+
 var CliClientCommand = cli.Command{
 	Name: "client",
 
@@ -37,6 +45,13 @@ var CliClientOpenCommand = cli.Command{
 	ArgsUsage: "<server> [remote-directory]",
 
 	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:    "ssh-path",
+			Usage:   "Path to SSH binary. Defaults to `ssh` on Unix, `C:\\Windows\\System32\\OpenSSH\\ssh.exe` on Windows",
+			EnvVars: []string{"NVRH_CLIENT_SSH_PATH"},
+			Value:   defaultSshPath(),
+		},
+
 		&cli.BoolFlag{
 			Name:    "use-ports",
 			Usage:   "Use ports instead of sockets. Defaults to true on Windows",
@@ -73,6 +88,8 @@ var CliClientOpenCommand = cli.Command{
 			LocalSocketPath:  path.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
+
+			SshPath: c.String("ssh-path"),
 		}
 
 		if nvrhContext.ShouldUsePorts {
