@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.12 (2024-10-12)
+
+
+### Bug Fixes
+
+* Same windows 255 fix for tunneling ports ([#22](https://github.com/mikew/nvrh/issues/22)) ([69c5739](https://github.com/mikew/nvrh/commit/69c57391293f79b76e26b08771b42c0c9c88b361))
+
 ## 0.1.11 (2024-10-12)
 
 
