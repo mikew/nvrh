@@ -53,6 +53,7 @@ nvrh client open \
   --local-editor --nofork \
   --local-editor --server \
   --local-editor {{SOCKET_PATH}}
+```
 
 ### `:NvrhTunnelPort`
 
