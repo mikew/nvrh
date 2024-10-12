@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.11 (2024-10-12)
+
+
+### Bug Fixes
+
+* Incorrect socket path used browser script ([#21](https://github.com/mikew/nvrh/issues/21)) ([813d0d8](https://github.com/mikew/nvrh/commit/813d0d8c2027d9dee8a21be3d44a2113146b0235))
+
 ## 0.1.10 (2024-10-12)
 
 
