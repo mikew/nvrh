@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.10 (2024-10-12)
+
+
+### Features
+
+* Cleanup processes ([#20](https://github.com/mikew/nvrh/issues/20)) ([944906f](https://github.com/mikew/nvrh/commit/944906f4ce91b6fb7806d72feecfad011e508d9b)), closes [#1](https://github.com/mikew/nvrh/issues/1)
+
 ## 0.1.9 (2024-10-11)
 
 
