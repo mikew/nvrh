@@ -45,6 +45,15 @@ OPTIONS:
    --help, -h                                     show help
 ```
 
+By default it runs `nvim`, but you can run something else with
+
+```sh
+nvrh client open \
+  --local-editor nvim-qt \
+  --local-editor --nofork \
+  --local-editor --server \
+  --local-editor {{SOCKET_PATH}}
+
 ### `:NvrhTunnelPort`
 
 https://github.com/user-attachments/assets/4a8c302e-4e49-4f74-81a3-ac86ba33016a
