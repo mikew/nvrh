@@ -238,7 +238,7 @@ vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
 
 return true
-	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.LocalSocketOrPort(), nv.ChannelID())
+	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
 
 
