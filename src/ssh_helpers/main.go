@@ -12,9 +12,9 @@ import (
 	"github.com/neovim/go-client/nvim"
 )
 
-func StartRemoteNvim(nvrhContext context.NvrhContext) {
-	nvimCommand := buildRemoteCommand(nvrhContext)
-	log.Printf("Starting remote nvim: %s", nvimCommand)
+func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
+	nvimCommandString := buildRemoteCommandString(nvrhContext)
+	log.Printf("Starting remote nvim: %s", nvimCommandString)
 
 	tunnel := fmt.Sprintf("%s:%s", nvrhContext.LocalSocketPath, nvrhContext.RemoteSocketPath)
 	if nvrhContext.ShouldUsePorts {
@@ -29,7 +29,7 @@ func StartRemoteNvim(nvrhContext context.NvrhContext) {
 		nvrhContext.Server,
 		// TODO Not really sure if this is better than piping it as exampled
 		// below.
-		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommand),
+		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString),
 	)
 
 	if runtime.GOOS == "windows" {
@@ -53,19 +53,10 @@ func StartRemoteNvim(nvrhContext context.NvrhContext) {
 	// Close the pipe after writing
 	// stdinPipe.Close()
 
-	if err := sshCommand.Start(); err != nil {
-		log.Printf("Error starting command: %v", err)
-		return
-	}
-
-	defer sshCommand.Process.Kill()
-
-	if err := sshCommand.Wait(); err != nil {
-		log.Printf("Error waiting for command: %v", err)
-	}
+	return sshCommand
 }
 
-func buildRemoteCommand(nvrhContext context.NvrhContext) string {
+func buildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 	envPairsString := ""
 	if len(nvrhContext.RemoteEnv) > 0 {
 		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
@@ -79,17 +70,19 @@ func buildRemoteCommand(nvrhContext context.NvrhContext) string {
 	)
 }
 
-func MakeRpcTunnelHandler(server string) func(*nvim.Nvim, []string) {
+func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []string) {
 	return func(v *nvim.Nvim, args []string) {
 		go func() {
-			log.Printf("Tunneling %s:%s", server, args[0])
+			log.Printf("Tunneling %s:%s", nvrhContext.Server, args[0])
 
 			sshCommand := exec.Command(
 				"ssh",
 				"-NL",
 				fmt.Sprintf("%s:0.0.0.0:%s", args[0], args[0]),
-				server,
+				nvrhContext.Server,
 			)
+
+			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, sshCommand)
 
 			if err := sshCommand.Start(); err != nil {
 				log.Printf("Error starting command: %v", err)
