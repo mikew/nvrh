@@ -8,7 +8,7 @@ import (
 	"nvrh/src/context"
 )
 
-func WaitForNvim(nvrhContext context.NvrhContext) (*nvim.Nvim, error) {
+func WaitForNvim(nvrhContext *context.NvrhContext) (*nvim.Nvim, error) {
 	for {
 		nv, err := nvim.Dial(nvrhContext.LocalSocketOrPort())
 

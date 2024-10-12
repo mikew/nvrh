@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"os/exec"
 )
 
 type NvrhContext struct {
@@ -18,6 +19,8 @@ type NvrhContext struct {
 	LocalEditor []string
 
 	BrowserScriptPath string
+
+	CommandsToKill []*exec.Cmd
 }
 
 func (nc NvrhContext) LocalSocketOrPort() string {
