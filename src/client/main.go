@@ -78,7 +78,7 @@ var CliClientOpenCommand = cli.Command{
 		if nvrhContext.ShouldUsePorts {
 			min := 1025
 			max := 65535
-			nvrhContext.PortNumber = rand.IntN((max - min) + min)
+			nvrhContext.PortNumber = rand.IntN(max-min) + min
 		}
 
 		if nvrhContext.Server == "" {
