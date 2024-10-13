@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.13 (2024-10-13)
+
+
+### Bug Fixes
+
+* Dont fork ssh ([#23](https://github.com/mikew/nvrh/issues/23)) ([ea4df7f](https://github.com/mikew/nvrh/commit/ea4df7f796a2e64913c2b88b08498a20daada23c))
+
 ## 0.1.12 (2024-10-12)
 
 
