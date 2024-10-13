@@ -2,7 +2,7 @@ package ssh_helpers
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"nvrh/src/context"
 	"os/exec"
 	"strings"
@@ -12,7 +12,7 @@ import (
 
 func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 	nvimCommandString := buildRemoteCommandString(nvrhContext)
-	log.Printf("Starting remote nvim: %s", nvimCommandString)
+	slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
 
 	tunnel := fmt.Sprintf("%s:%s", nvrhContext.LocalSocketPath, nvrhContext.RemoteSocketPath)
 	if nvrhContext.ShouldUsePorts {
@@ -29,10 +29,6 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 		// below.
 		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString),
 	)
-
-	// sshCommand.Stdout = os.Stdout
-	// sshCommand.Stderr = os.Stderr
-	// sshCommand.Stdin = os.Stdin
 
 	// Create a pipe to write to the command's stdin
 	// stdinPipe, err := sshCommand.StdinPipe()
@@ -69,7 +65,7 @@ func buildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []string) {
 	return func(v *nvim.Nvim, args []string) {
 		go func() {
-			log.Printf("Tunneling %s:%s", nvrhContext.Server, args[0])
+			slog.Info("Tunneling", "server", nvrhContext.Server, "port", args[0])
 
 			sshCommand := exec.Command(
 				nvrhContext.SshPath,
@@ -84,14 +80,14 @@ func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []s
 			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, sshCommand)
 
 			if err := sshCommand.Start(); err != nil {
-				log.Printf("Error starting command: %v", err)
+				slog.Error("Error starting tunnel", "err", err)
 				return
 			}
 
 			defer sshCommand.Process.Kill()
 
 			if err := sshCommand.Wait(); err != nil {
-				log.Printf("Error waiting for command: %v", err)
+				slog.Error("Error running tunnel", "err", err)
 			}
 		}()
 	}
