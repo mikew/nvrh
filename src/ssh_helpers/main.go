@@ -30,10 +30,6 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 		fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString),
 	)
 
-	// sshCommand.Stdout = os.Stdout
-	// sshCommand.Stderr = os.Stderr
-	// sshCommand.Stdin = os.Stdin
-
 	// Create a pipe to write to the command's stdin
 	// stdinPipe, err := sshCommand.StdinPipe()
 	// if err != nil {

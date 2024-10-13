@@ -59,6 +59,12 @@ var CliClientOpenCommand = cli.Command{
 			Value:   runtime.GOOS == "windows",
 		},
 
+		&cli.BoolFlag{
+			Name:    "debug",
+			Usage:   "",
+			EnvVars: []string{"NVRH_CLIENT_DEBUG"},
+		},
+
 		&cli.StringSliceFlag{
 			Name:  "server-env",
 			Usage: "Environment variables to set on the remote server",
@@ -90,13 +96,18 @@ var CliClientOpenCommand = cli.Command{
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
 			SshPath: c.String("ssh-path"),
+			Debug:   c.Bool("debug"),
 		}
 
 		// Prepare the logger.
 		logLevel := slog.LevelInfo
+		if nvrhContext.Debug {
+			logLevel = slog.LevelDebug
+		}
 		log := slog.New(prettylog.New(
 			&slog.HandlerOptions{
 				Level:     logLevel,
+				AddSource: nvrhContext.Debug,
 			},
 			prettylog.WithDestinationWriter(os.Stderr),
 			prettylog.WithColor(),
@@ -123,6 +134,11 @@ var CliClientOpenCommand = cli.Command{
 		// Prepare remote instance.
 		go func() {
 			remoteCmd := ssh_helpers.BuildRemoteNvimCmd(&nvrhContext)
+			if nvrhContext.Debug {
+				remoteCmd.Stdout = os.Stdout
+				remoteCmd.Stderr = os.Stderr
+				// remoteCmd.Stdin = os.Stdin
+			}
 			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, remoteCmd)
 
 			// We don't want the ssh process ending too early, if it does we can't
@@ -160,6 +176,12 @@ var CliClientOpenCommand = cli.Command{
 			}
 
 			clientCmd := BuildClientNvimCmd(&nvrhContext)
+			if nvrhContext.Debug {
+				clientCmd.Stdout = os.Stdout
+				clientCmd.Stderr = os.Stderr
+				// clientCmd.Stdin = os.Stdin
+			}
+
 			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, clientCmd)
 
 			if err := clientCmd.Start(); err != nil {

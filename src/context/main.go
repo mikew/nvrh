@@ -23,6 +23,7 @@ type NvrhContext struct {
 	CommandsToKill []*exec.Cmd
 
 	SshPath string
+	Debug   bool
 }
 
 func (nc NvrhContext) LocalSocketOrPort() string {
