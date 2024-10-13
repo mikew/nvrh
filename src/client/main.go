@@ -16,7 +16,6 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"nvrh/src/context"
-	"nvrh/src/exec_helpers"
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/ssh_helpers"
 )
@@ -116,7 +115,7 @@ var CliClientOpenCommand = cli.Command{
 
 			// We don't want the ssh process ending too early, if it does we can't
 			// clean up the remote nvim instance.
-			exec_helpers.PrepareForForking(remoteCmd)
+			// exec_helpers.PrepareForForking(remoteCmd)
 
 			if err := remoteCmd.Run(); err != nil {
 				log.Printf("Error running ssh: %v", err)
