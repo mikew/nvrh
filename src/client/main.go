@@ -102,8 +102,6 @@ var CliClientOpenCommand = cli.Command{
 			Debug:   isDebug,
 		}
 
-		}
-
 		if nvrhContext.ShouldUsePorts {
 			min := 1025
 			max := 65535
