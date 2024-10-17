@@ -293,11 +293,6 @@ os.execute('chmod +x ' .. browser_script_path)
 return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
-
-
-
-
-
 	if err := batch.Execute(); err != nil {
 		return err
 	}
