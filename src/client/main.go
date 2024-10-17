@@ -160,7 +160,7 @@ var CliClientOpenCommand = cli.Command{
 			nvChan <- nv
 
 			if err := prepareRemoteNvim(nvrhContext, nv); err != nil {
-				slog.Error("Error preparing remote nvim", "err", err)
+				slog.Warn("Error preparing remote nvim", "err", err)
 			}
 
 			clientCmd := BuildClientNvimCmd(nvrhContext)
@@ -326,7 +326,7 @@ func killAllCmds(cmds []*exec.Cmd) {
 		slog.Debug("Killing command", "cmd", cmd.Args)
 		if cmd.Process != nil {
 			if err := cmd.Process.Kill(); err != nil {
-				slog.Error("Error killing command", "err", err)
+				slog.Warn("Error killing command", "err", err)
 			}
 		}
 	}
@@ -339,7 +339,7 @@ func closeNvimSocket(nv *nvim.Nvim) {
 
 	slog.Info("Closing nvim")
 	if err := nv.ExecLua("vim.cmd('qall!')", nil, nil); err != nil {
-		slog.Error("Error closing remote nvim", "err", err)
+		slog.Warn("Error closing remote nvim", "err", err)
 	}
 	nv.Close()
 }
