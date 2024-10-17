@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -94,7 +94,7 @@ var CliClientOpenCommand = cli.Command{
 			ShouldUsePorts: c.Bool("use-ports"),
 
 			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
-			LocalSocketPath:  path.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
+			LocalSocketPath:  filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
