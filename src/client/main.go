@@ -202,6 +202,7 @@ var CliClientOpenCommand = cli.Command{
 		slog.Info("Closing nvrh")
 		closeNvimSocket(nv)
 		killAllCmds(nvrhContext.CommandsToKill)
+		os.Remove(nvrhContext.LocalSocketPath)
 
 		if err != nil {
 			return err
