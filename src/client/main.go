@@ -149,7 +149,7 @@ var CliClientOpenCommand = cli.Command{
 		// Prepare client instance.
 		nvChan := make(chan *nvim.Nvim, 1)
 		go func() {
-			nv, err := nvim_helpers.WaitForNvim(&nvrhContext)
+			nv, err := nvim_helpers.WaitForNvim(nvrhContext)
 
 			if err != nil {
 				slog.Error("Error connecting to nvim", "err", err)
