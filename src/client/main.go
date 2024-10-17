@@ -83,7 +83,7 @@ var CliClientOpenCommand = cli.Command{
 
 		// Prepare the context.
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
-		nvrhContext := context.NvrhContext{
+		nvrhContext := &context.NvrhContext{
 			SessionId:       sessionId,
 			Server:          c.Args().Get(0),
 			RemoteDirectory: c.Args().Get(1),
@@ -123,7 +123,7 @@ var CliClientOpenCommand = cli.Command{
 
 		// Prepare remote instance.
 		go func() {
-			remoteCmd := ssh_helpers.BuildRemoteNvimCmd(&nvrhContext)
+			remoteCmd := ssh_helpers.BuildRemoteNvimCmd(nvrhContext)
 			if nvrhContext.Debug {
 				remoteCmd.Stdout = os.Stdout
 				remoteCmd.Stderr = os.Stderr
@@ -161,11 +161,11 @@ var CliClientOpenCommand = cli.Command{
 			slog.Info("Connected to nvim")
 			nvChan <- nv
 
-			if err := prepareRemoteNvim(&nvrhContext, nv); err != nil {
+			if err := prepareRemoteNvim(nvrhContext, nv); err != nil {
 				slog.Error("Error preparing remote nvim", "err", err)
 			}
 
-			clientCmd := BuildClientNvimCmd(&nvrhContext)
+			clientCmd := BuildClientNvimCmd(nvrhContext)
 			if nvrhContext.Debug {
 				clientCmd.Stdout = os.Stdout
 				clientCmd.Stderr = os.Stderr
