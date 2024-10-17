@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dusted-go/logging/prettylog"
 	"github.com/neovim/go-client/nvim"
 	"github.com/urfave/cli/v2"
 
 	"nvrh/src/context"
+	"nvrh/src/logger"
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/ssh_helpers"
 )
@@ -78,6 +78,9 @@ var CliClientOpenCommand = cli.Command{
 	},
 
 	Action: func(c *cli.Context) error {
+		isDebug := c.Bool("debug")
+		logger.PrepareLogger(isDebug)
+
 		// Prepare the context.
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
 		nvrhContext := context.NvrhContext{
@@ -96,23 +99,10 @@ var CliClientOpenCommand = cli.Command{
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
 			SshPath: c.String("ssh-path"),
-			Debug:   c.Bool("debug"),
+			Debug:   isDebug,
 		}
 
-		// Prepare the logger.
-		logLevel := slog.LevelInfo
-		if nvrhContext.Debug {
-			logLevel = slog.LevelDebug
 		}
-		log := slog.New(prettylog.New(
-			&slog.HandlerOptions{
-				Level:     logLevel,
-				AddSource: nvrhContext.Debug,
-			},
-			prettylog.WithDestinationWriter(os.Stderr),
-			prettylog.WithColor(),
-		))
-		slog.SetDefault(log)
 
 		if nvrhContext.ShouldUsePorts {
 			min := 1025
