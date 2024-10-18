@@ -7,16 +7,16 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/dusted-go/logging/prettylog"
 	"github.com/neovim/go-client/nvim"
 	"github.com/urfave/cli/v2"
 
 	"nvrh/src/context"
+	"nvrh/src/logger"
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/ssh_helpers"
 )
@@ -78,9 +78,12 @@ var CliClientOpenCommand = cli.Command{
 	},
 
 	Action: func(c *cli.Context) error {
+		isDebug := c.Bool("debug")
+		logger.PrepareLogger(isDebug)
+
 		// Prepare the context.
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
-		nvrhContext := context.NvrhContext{
+		nvrhContext := &context.NvrhContext{
 			SessionId:       sessionId,
 			Server:          c.Args().Get(0),
 			RemoteDirectory: c.Args().Get(1),
@@ -91,28 +94,13 @@ var CliClientOpenCommand = cli.Command{
 			ShouldUsePorts: c.Bool("use-ports"),
 
 			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
-			LocalSocketPath:  path.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
+			LocalSocketPath:  filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
 			SshPath: c.String("ssh-path"),
-			Debug:   c.Bool("debug"),
+			Debug:   isDebug,
 		}
-
-		// Prepare the logger.
-		logLevel := slog.LevelInfo
-		if nvrhContext.Debug {
-			logLevel = slog.LevelDebug
-		}
-		log := slog.New(prettylog.New(
-			&slog.HandlerOptions{
-				Level:     logLevel,
-				AddSource: nvrhContext.Debug,
-			},
-			prettylog.WithDestinationWriter(os.Stderr),
-			prettylog.WithColor(),
-		))
-		slog.SetDefault(log)
 
 		if nvrhContext.ShouldUsePorts {
 			min := 1025
@@ -133,7 +121,7 @@ var CliClientOpenCommand = cli.Command{
 
 		// Prepare remote instance.
 		go func() {
-			remoteCmd := ssh_helpers.BuildRemoteNvimCmd(&nvrhContext)
+			remoteCmd := ssh_helpers.BuildRemoteNvimCmd(nvrhContext)
 			if nvrhContext.Debug {
 				remoteCmd.Stdout = os.Stdout
 				remoteCmd.Stderr = os.Stderr
@@ -161,7 +149,7 @@ var CliClientOpenCommand = cli.Command{
 		// Prepare client instance.
 		nvChan := make(chan *nvim.Nvim, 1)
 		go func() {
-			nv, err := nvim_helpers.WaitForNvim(&nvrhContext)
+			nv, err := nvim_helpers.WaitForNvim(nvrhContext)
 
 			if err != nil {
 				slog.Error("Error connecting to nvim", "err", err)
@@ -171,11 +159,11 @@ var CliClientOpenCommand = cli.Command{
 			slog.Info("Connected to nvim")
 			nvChan <- nv
 
-			if err := prepareRemoteNvim(&nvrhContext, nv); err != nil {
-				slog.Error("Error preparing remote nvim", "err", err)
+			if err := prepareRemoteNvim(nvrhContext, nv); err != nil {
+				slog.Warn("Error preparing remote nvim", "err", err)
 			}
 
-			clientCmd := BuildClientNvimCmd(&nvrhContext)
+			clientCmd := BuildClientNvimCmd(nvrhContext)
 			if nvrhContext.Debug {
 				clientCmd.Stdout = os.Stdout
 				clientCmd.Stderr = os.Stderr
@@ -214,6 +202,7 @@ var CliClientOpenCommand = cli.Command{
 		slog.Info("Closing nvrh")
 		closeNvimSocket(nv)
 		killAllCmds(nvrhContext.CommandsToKill)
+		os.Remove(nvrhContext.LocalSocketPath)
 
 		if err != nil {
 			return err
@@ -253,8 +242,6 @@ func prepareRemoteNvim(nvrhContext *context.NvrhContext, nv *nvim.Nvim) error {
 	batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, nvrhContext.BrowserScriptPath))
 
 	// Add command to tunnel port.
-	// TODO use `vim.api.nvim_create_user_command`, and check to see if the
-	// port is already mapped somehow.
 	batch.ExecLua(`
 vim.api.nvim_create_user_command(
 	'NvrhTunnelPort',
@@ -303,11 +290,6 @@ os.execute('chmod +x ' .. browser_script_path)
 return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
-
-
-
-
-
 	if err := batch.Execute(); err != nil {
 		return err
 	}
@@ -342,7 +324,7 @@ func killAllCmds(cmds []*exec.Cmd) {
 		slog.Debug("Killing command", "cmd", cmd.Args)
 		if cmd.Process != nil {
 			if err := cmd.Process.Kill(); err != nil {
-				slog.Error("Error killing command", "err", err)
+				slog.Warn("Error killing command", "err", err)
 			}
 		}
 	}
@@ -355,7 +337,7 @@ func closeNvimSocket(nv *nvim.Nvim) {
 
 	slog.Info("Closing nvim")
 	if err := nv.ExecLua("vim.cmd('qall!')", nil, nil); err != nil {
-		slog.Error("Error closing remote nvim", "err", err)
+		slog.Warn("Error closing remote nvim", "err", err)
 	}
 	nv.Close()
 }

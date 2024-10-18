@@ -39,7 +39,7 @@ func (nc NvrhContext) LocalSocketOrPort() string {
 
 func (nc NvrhContext) RemoteSocketOrPort() string {
 	if nc.ShouldUsePorts {
-		return fmt.Sprintf("0.0.0.0:%d", nc.PortNumber)
+		return fmt.Sprintf("127.0.0.1:%d", nc.PortNumber)
 	}
 
 	return nc.RemoteSocketPath
