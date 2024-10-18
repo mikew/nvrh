@@ -4,17 +4,24 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/dusted-go/logging/prettylog"
+	"github.com/kevinburke/ssh_config"
 	"github.com/neovim/go-client/nvim"
+	"github.com/skeema/knownhosts"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"nvrh/src/context"
 	"nvrh/src/nvim_helpers"
@@ -80,6 +87,17 @@ var CliClientOpenCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		// Prepare the context.
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
+
+		endpoint, err := parseServerString(c.Args().Get(0))
+		if err != nil {
+			return err
+		}
+
+		sshClient, err := getSshClientForServer(endpoint)
+		if err != nil {
+			return err
+		}
+
 		nvrhContext := context.NvrhContext{
 			SessionId:       sessionId,
 			Server:          c.Args().Get(0),
@@ -97,6 +115,8 @@ var CliClientOpenCommand = cli.Command{
 
 			SshPath: c.String("ssh-path"),
 			Debug:   c.Bool("debug"),
+
+			SshClient: sshClient,
 		}
 
 		// Prepare the logger.
@@ -122,6 +142,30 @@ var CliClientOpenCommand = cli.Command{
 
 		if nvrhContext.Server == "" {
 			return fmt.Errorf("<server> is required")
+		}
+
+		// client, err := ssh.Dial("tcp", "10.0.1.99:22", sshConfig)
+		// if err != nil {
+		// 	slog.Error("Failed to dial", "err", err)
+		// 	return err
+		// }
+		defer nvrhContext.SshClient.Close()
+
+		// Each ClientConn can support multiple interactive sessions,
+		// represented by a Session.
+		session, err := nvrhContext.SshClient.NewSession()
+		if err != nil {
+			slog.Error("Failed to create session", "err", err)
+			return err
+		}
+		session.Stdout = os.Stdout
+		defer session.Close()
+
+		// Once a Session is created, you can a single command on
+		// the remote side using the Run method.
+		if err := session.Run("uname -a"); err != nil {
+			slog.Error("Failed to run", "err", err)
+			return err
 		}
 
 		var nv *nvim.Nvim
@@ -209,7 +253,7 @@ var CliClientOpenCommand = cli.Command{
 			}
 		}()
 
-		err := <-doneChan
+		err = <-doneChan
 
 		slog.Info("Closing nvrh")
 		closeNvimSocket(nv)
@@ -303,11 +347,6 @@ os.execute('chmod +x ' .. browser_script_path)
 return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
-
-
-
-
-
 	if err := batch.Execute(); err != nil {
 		return err
 	}
@@ -358,4 +397,119 @@ func closeNvimSocket(nv *nvim.Nvim) {
 		slog.Error("Error closing remote nvim", "err", err)
 	}
 	nv.Close()
+}
+
+func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
+	kh, err := knownhosts.NewDB(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Debug("Connecting to server", "endpoint", endpoint)
+
+	authMethods := []ssh.AuthMethod{}
+
+	// identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
+	// slog.Debug("Identity file", "file", identityFile)
+	// if identityFile != "" {
+	// 	key, err := os.ReadFile(identityFile)
+	// 	if err != nil {
+	// 		slog.Error("unable to read private key", "err", err)
+	// 		return nil, err
+	// 	}
+
+	// 	// Create the Signer for this private key.
+	// 	signer, err := ssh.ParsePrivateKey(key)
+	// 	if err != nil {
+	// 		slog.Error("unable to parse private key", "err", err)
+	// 	}
+
+	// 	authMethods = append(authMethods, ssh.PublicKeys(signer))
+	// }
+
+	if len(authMethods) == 0 {
+		slog.Debug("No identity file found, using password auth")
+		fmt.Printf("Password for %s: ", endpoint)
+		password, err := terminal.ReadPassword(0)
+		if err != nil {
+			slog.Error("Error reading password", "err", err)
+			return nil, err
+		}
+
+		authMethods = append(authMethods, ssh.Password(string(password)))
+	}
+
+	config := &ssh.ClientConfig{
+		User:              endpoint.User,
+		Auth:              authMethods,
+		HostKeyCallback:   kh.HostKeyCallback(),
+		HostKeyAlgorithms: kh.HostKeyAlgorithms(fmt.Sprintf("%s:%s", endpoint.Host, endpoint.Port)),
+	}
+
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", endpoint.Host, endpoint.Port), config)
+	if err != nil {
+		slog.Error("Failed to dial", "err", err)
+		return nil, err
+	}
+
+	return client, nil
+}
+
+type Endpoint struct {
+	User string
+	Host string
+	Port string
+}
+
+func (e *Endpoint) String() string {
+	return fmt.Sprintf("%s@%s:%s", e.User, e.Host, e.Port)
+}
+
+func parseServerString(server string) (*Endpoint, error) {
+	currentUser, err := user.Current()
+
+	if err != nil {
+		slog.Error("Error getting current user", "err", err)
+		return nil, err
+	}
+
+	fallbackUsername := currentUser.Username
+	fallbackPort := "22"
+
+	parsed, err := url.Parse(fmt.Sprintf("ssh://%s", server))
+	if err != nil {
+		return nil, err
+	}
+
+	givenHostname := parsed.Hostname()
+	givenUsername := parsed.User.Username()
+	givenPort := parsed.Port()
+
+	finalUsername := givenUsername
+	if finalUsername == "" {
+		finalUsername = ssh_config.Get(givenHostname, "User")
+	}
+	if finalUsername == "" {
+		finalUsername = fallbackUsername
+	}
+
+	finalPort := givenPort
+	if finalPort == "" {
+		finalPort = ssh_config.Get(givenHostname, "Port")
+	}
+	if finalPort == "" {
+		finalPort = fallbackPort
+	}
+
+	finalHostname := givenHostname
+	configHostname := ssh_config.Get(givenHostname, "HostName")
+	if configHostname != "" {
+		finalHostname = configHostname
+	}
+
+	return &Endpoint{
+		User: finalUsername,
+		Host: finalHostname,
+		Port: finalPort,
+	}, nil
 }
