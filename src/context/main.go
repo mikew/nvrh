@@ -3,6 +3,8 @@ package context
 import (
 	"fmt"
 	"os/exec"
+
+	"golang.org/x/crypto/ssh"
 )
 
 type NvrhContext struct {
@@ -24,6 +26,8 @@ type NvrhContext struct {
 
 	SshPath string
 	Debug   bool
+
+	SshClient *ssh.Client
 }
 
 func (nc NvrhContext) LocalSocketOrPort() string {
