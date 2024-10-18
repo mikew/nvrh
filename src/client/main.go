@@ -144,11 +144,6 @@ var CliClientOpenCommand = cli.Command{
 			return fmt.Errorf("<server> is required")
 		}
 
-		// client, err := ssh.Dial("tcp", "10.0.1.99:22", sshConfig)
-		// if err != nil {
-		// 	slog.Error("Failed to dial", "err", err)
-		// 	return err
-		// }
 		defer nvrhContext.SshClient.Close()
 
 		// Each ClientConn can support multiple interactive sessions,
