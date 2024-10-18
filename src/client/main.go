@@ -242,8 +242,6 @@ func prepareRemoteNvim(nvrhContext *context.NvrhContext, nv *nvim.Nvim) error {
 	batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, nvrhContext.BrowserScriptPath))
 
 	// Add command to tunnel port.
-	// TODO use `vim.api.nvim_create_user_command`, and check to see if the
-	// port is already mapped somehow.
 	batch.ExecLua(`
 vim.api.nvim_create_user_command(
 	'NvrhTunnelPort',
