@@ -169,6 +169,9 @@ var CliClientOpenCommand = cli.Command{
 			if err := ssh_helpers.RunCommand(&nvrhContext, nvimCommandString); err != nil {
 				doneChan <- err
 			}
+
+			ssh_helpers.RunCommand(&nvrhContext, fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath))
+			ssh_helpers.RunCommand(&nvrhContext, fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath))
 		}()
 
 		// Prepare client instance.
