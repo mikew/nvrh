@@ -2,16 +2,20 @@ package ssh_helpers
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
+	"net"
 	"nvrh/src/context"
+	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/neovim/go-client/nvim"
+	"golang.org/x/crypto/ssh"
 )
 
 func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
-	nvimCommandString := buildRemoteCommandString(nvrhContext)
+	nvimCommandString := BuildRemoteCommandString(nvrhContext)
 	slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
 
 	tunnel := fmt.Sprintf("%s:%s", nvrhContext.LocalSocketPath, nvrhContext.RemoteSocketPath)
@@ -48,7 +52,7 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 	return sshCommand
 }
 
-func buildRemoteCommandString(nvrhContext *context.NvrhContext) string {
+func BuildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 	envPairsString := ""
 	if len(nvrhContext.RemoteEnv) > 0 {
 		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
@@ -64,31 +68,110 @@ func buildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 
 func MakeRpcTunnelHandler(nvrhContext *context.NvrhContext) func(*nvim.Nvim, []string) {
 	return func(v *nvim.Nvim, args []string) {
-		go func() {
-			slog.Info("Tunneling", "server", nvrhContext.Server, "port", args[0])
-
-			sshCommand := exec.Command(
-				nvrhContext.SshPath,
-				"-NL",
-				fmt.Sprintf("%s:0.0.0.0:%s", args[0], args[0]),
-				nvrhContext.Server,
-			)
-
-			// sshCommand.Stdout = os.Stdout
-			// sshCommand.Stderr = os.Stderr
-			// sshCommand.Stdin = os.Stdin
-			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, sshCommand)
-
-			if err := sshCommand.Start(); err != nil {
-				slog.Error("Error starting tunnel", "err", err)
-				return
-			}
-
-			defer sshCommand.Process.Kill()
-
-			if err := sshCommand.Wait(); err != nil {
-				slog.Error("Error running tunnel", "err", err)
-			}
-		}()
+		go TunnelSshSocket(nvrhContext, SshTunnelInfo{
+			Mode:         "port",
+			LocalSocket:  fmt.Sprintf("%s", args[0]),
+			RemoteSocket: fmt.Sprintf("%s", args[0]),
+		})
 	}
+}
+
+type SshTunnelInfo struct {
+	Mode         string
+	LocalSocket  string
+	RemoteSocket string
+}
+
+func (ti SshTunnelInfo) LocalListener() (net.Listener, error) {
+	switch ti.Mode {
+	case "unix":
+		return net.Listen("unix", ti.LocalSocket)
+	case "port":
+		return net.Listen("tcp", fmt.Sprintf("localhost:%s", ti.LocalSocket))
+	}
+
+	return nil, fmt.Errorf("Invalid mode: %s", ti.Mode)
+}
+
+func (ti SshTunnelInfo) RemoteListener(sshClient *ssh.Client) (net.Conn, error) {
+	switch ti.Mode {
+	case "unix":
+		return sshClient.Dial("unix", ti.RemoteSocket)
+	case "port":
+		return sshClient.Dial("tcp", fmt.Sprintf("localhost:%s", ti.RemoteSocket))
+	}
+
+	return nil, fmt.Errorf("Invalid mode: %s", ti.Mode)
+}
+
+func TunnelSshSocket(nvrhContext *context.NvrhContext, tunnelInfo SshTunnelInfo) {
+	// Listen on the local Unix socket
+	localListener, err := tunnelInfo.LocalListener()
+	if err != nil {
+		slog.Error("Failed to listen on local socket", "err", err)
+		return
+	}
+
+	defer localListener.Close()
+
+	defer func() {
+		// Clean up local socket file
+		os.Remove(tunnelInfo.LocalSocket)
+	}()
+
+	slog.Info("Tunneling SSH socket", "LocalSocke", tunnelInfo.LocalSocket, "RemoteSocket", tunnelInfo.RemoteSocket)
+
+	for {
+		// Accept incoming connections
+		localConn, err := localListener.Accept()
+		if err != nil {
+			slog.Error("Failed to accept connection", "err", err)
+			continue
+		}
+
+		// Establish a connection to the remote socket via SSH
+		remoteConn, err := tunnelInfo.RemoteListener(nvrhContext.SshClient)
+		if err != nil {
+			slog.Error("Failed to dial remote socket", "err", err)
+			localConn.Close()
+			continue
+		}
+
+		// Start a goroutine to handle the connection
+		go handleConnection(localConn, remoteConn)
+	}
+}
+
+func handleConnection(localConn net.Conn, remoteConn net.Conn) {
+	// Close connections when done
+	defer localConn.Close()
+	defer remoteConn.Close()
+
+	// Copy data from local to remote
+	go io.Copy(remoteConn, localConn)
+	// Copy data from remote to local
+	io.Copy(localConn, remoteConn)
+}
+
+func RunCommand(nvrhContext *context.NvrhContext, command string) error {
+	session, err := nvrhContext.SshClient.NewSession()
+
+	if err != nil {
+		slog.Error("Failed to create session", "err", err)
+		return err
+	}
+
+	defer session.Close()
+
+	if nvrhContext.Debug {
+		session.Stdout = os.Stdout
+		session.Stderr = os.Stderr
+	}
+
+	if err := session.Run(command); err != nil {
+		slog.Error("Failed to run command", "err", err)
+		return err
+	}
+
+	return nil
 }

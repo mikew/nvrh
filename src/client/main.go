@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -21,6 +22,7 @@ import (
 	"github.com/skeema/knownhosts"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/terminal"
 
 	"nvrh/src/context"
@@ -146,23 +148,6 @@ var CliClientOpenCommand = cli.Command{
 
 		defer nvrhContext.SshClient.Close()
 
-		// Each ClientConn can support multiple interactive sessions,
-		// represented by a Session.
-		session, err := nvrhContext.SshClient.NewSession()
-		if err != nil {
-			slog.Error("Failed to create session", "err", err)
-			return err
-		}
-		session.Stdout = os.Stdout
-		defer session.Close()
-
-		// Once a Session is created, you can a single command on
-		// the remote side using the Run method.
-		if err := session.Run("uname -a"); err != nil {
-			slog.Error("Failed to run", "err", err)
-			return err
-		}
-
 		var nv *nvim.Nvim
 
 		doneChan := make(chan error)
@@ -172,28 +157,17 @@ var CliClientOpenCommand = cli.Command{
 
 		// Prepare remote instance.
 		go func() {
-			remoteCmd := ssh_helpers.BuildRemoteNvimCmd(&nvrhContext)
-			if nvrhContext.Debug {
-				remoteCmd.Stdout = os.Stdout
-				remoteCmd.Stderr = os.Stderr
-				// remoteCmd.Stdin = os.Stdin
-			}
-			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, remoteCmd)
+			go ssh_helpers.TunnelSshSocket(&nvrhContext, ssh_helpers.SshTunnelInfo{
+				Mode:         "unix",
+				LocalSocket:  nvrhContext.LocalSocketPath,
+				RemoteSocket: nvrhContext.RemoteSocketPath,
+			})
 
-			// We don't want the ssh process ending too early, if it does we can't
-			// clean up the remote nvim instance.
-			// exec_helpers.PrepareForForking(remoteCmd)
-
-			if err := remoteCmd.Start(); err != nil {
-				slog.Error("Error starting ssh", "err", err)
+			nvimCommandString := ssh_helpers.BuildRemoteCommandString(&nvrhContext)
+			nvimCommandString = fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString)
+			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
+			if err := ssh_helpers.RunCommand(&nvrhContext, nvimCommandString); err != nil {
 				doneChan <- err
-				return
-			}
-
-			if err := remoteCmd.Wait(); err != nil {
-				slog.Error("Error running ssh", "err", err)
-			} else {
-				slog.Info("Remote nvim exited")
 			}
 		}()
 
@@ -405,34 +379,90 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 	authMethods := []ssh.AuthMethod{}
 
 	// identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
-	// slog.Debug("Identity file", "file", identityFile)
 	// if identityFile != "" {
-	// 	key, err := os.ReadFile(identityFile)
-	// 	if err != nil {
-	// 		slog.Error("unable to read private key", "err", err)
-	// 		return nil, err
-	// 	}
+	// 	if _, err := os.Stat(identityFile); os.IsExist(err) {
+	// 		slog.Debug("Using identity file", "identityFile", identityFile)
 
-	// 	// Create the Signer for this private key.
-	// 	signer, err := ssh.ParsePrivateKey(key)
-	// 	if err != nil {
-	// 		slog.Error("unable to parse private key", "err", err)
-	// 	}
+	// 		key, err := os.ReadFile(identityFile)
+	// 		if err != nil {
+	// 			slog.Error("unable to read private key", "err", err)
+	// 			return nil, err
+	// 		}
 
-	// 	authMethods = append(authMethods, ssh.PublicKeys(signer))
+	// 		// Create the Signer for this private key.
+	// 		signer, err := ssh.ParsePrivateKey(key)
+	// 		if err != nil {
+	// 			slog.Error("unable to parse private key", "err", err)
+	// 		}
+
+	// 		authMethods = append(authMethods, ssh.PublicKeys(signer))
+	// 	}
 	// }
 
-	if len(authMethods) == 0 {
-		slog.Debug("No identity file found, using password auth")
+	authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+		identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
+
+		if identityFile == "" {
+			return nil, nil
+		}
+
+		if _, err := os.Stat(identityFile); os.IsNotExist(err) {
+			slog.Error("Identity file does not exist", "identityFile", identityFile)
+			return nil, nil
+		}
+
+		slog.Debug("Using identity file", "identityFile", identityFile)
+
+		key, err := os.ReadFile(identityFile)
+		if err != nil {
+			slog.Error("unable to read private key", "err", err)
+			return nil, err
+		}
+
+		// Create the Signer for this private key.
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			slog.Error("unable to parse private key", "err", err)
+		}
+
+		return []ssh.Signer{signer}, nil
+	}))
+
+	sshAuthSock := ssh_config.Get(endpoint.Host, "IdentityAgent")
+	if sshAuthSock == "" {
+		sshAuthSock = os.Getenv("SSH_AUTH_SOCK")
+	}
+
+	if sshAuthSock != "" {
+		userHomeDir, err := os.UserHomeDir()
+		if err != nil {
+			slog.Error("Error getting user home dir", "err", err)
+		} else {
+			sshAuthSock = strings.ReplaceAll(sshAuthSock, "\"", "")
+			sshAuthSock = strings.ReplaceAll(sshAuthSock, "$HOME", userHomeDir)
+			sshAuthSock = strings.ReplaceAll(sshAuthSock, "~", userHomeDir)
+
+			slog.Debug("Using ssh agent", "socket", sshAuthSock)
+			conn, err := net.Dial("unix", sshAuthSock)
+			if err != nil {
+				slog.Error("Failed to open SSH auth socket", "err", err)
+			} else {
+				agentClient := agent.NewClient(conn)
+				authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
+			}
+		}
+	}
+
+	authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
 		fmt.Printf("Password for %s: ", endpoint)
 		password, err := terminal.ReadPassword(0)
 		if err != nil {
 			slog.Error("Error reading password", "err", err)
-			return nil, err
+			return "", err
 		}
 
-		authMethods = append(authMethods, ssh.Password(string(password)))
-	}
+		return string(password), nil
+	}))
 
 	config := &ssh.ClientConfig{
 		User:              endpoint.User,
