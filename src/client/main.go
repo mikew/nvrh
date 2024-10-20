@@ -378,55 +378,35 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 
 	authMethods := []ssh.AuthMethod{}
 
-	// identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
-	// if identityFile != "" {
-	// 	if _, err := os.Stat(identityFile); os.IsExist(err) {
-	// 		slog.Debug("Using identity file", "identityFile", identityFile)
+	// authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+	// 	identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
 
-	// 		key, err := os.ReadFile(identityFile)
-	// 		if err != nil {
-	// 			slog.Error("unable to read private key", "err", err)
-	// 			return nil, err
-	// 		}
-
-	// 		// Create the Signer for this private key.
-	// 		signer, err := ssh.ParsePrivateKey(key)
-	// 		if err != nil {
-	// 			slog.Error("unable to parse private key", "err", err)
-	// 		}
-
-	// 		authMethods = append(authMethods, ssh.PublicKeys(signer))
+	// 	if identityFile == "" {
+	// 		return nil, nil
 	// 	}
-	// }
 
-	authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
-		identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
+	// 	if _, err := os.Stat(identityFile); os.IsNotExist(err) {
+	// 		slog.Error("Identity file does not exist", "identityFile", identityFile)
+	// 		return nil, err
+	// 	}
 
-		if identityFile == "" {
-			return nil, nil
-		}
+	// 	slog.Info("Using identity file", "identityFile", identityFile)
 
-		if _, err := os.Stat(identityFile); os.IsNotExist(err) {
-			slog.Error("Identity file does not exist", "identityFile", identityFile)
-			return nil, nil
-		}
+	// 	key, err := os.ReadFile(identityFile)
+	// 	if err != nil {
+	// 		slog.Error("unable to read private key", "err", err)
+	// 		return nil, err
+	// 	}
 
-		slog.Debug("Using identity file", "identityFile", identityFile)
+	// 	// Create the Signer for this private key.
+	// 	signer, err := ssh.ParsePrivateKey(key)
+	// 	if err != nil {
+	// 		slog.Error("unable to parse private key", "err", err)
+	// 		return nil, err
+	// 	}
 
-		key, err := os.ReadFile(identityFile)
-		if err != nil {
-			slog.Error("unable to read private key", "err", err)
-			return nil, err
-		}
-
-		// Create the Signer for this private key.
-		signer, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			slog.Error("unable to parse private key", "err", err)
-		}
-
-		return []ssh.Signer{signer}, nil
-	}))
+	// 	return []ssh.Signer{signer}, nil
+	// }))
 
 	sshAuthSock := ssh_config.Get(endpoint.Host, "IdentityAgent")
 	if sshAuthSock == "" {
@@ -442,11 +422,11 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 			sshAuthSock = strings.ReplaceAll(sshAuthSock, "$HOME", userHomeDir)
 			sshAuthSock = strings.ReplaceAll(sshAuthSock, "~", userHomeDir)
 
-			slog.Debug("Using ssh agent", "socket", sshAuthSock)
 			conn, err := net.Dial("unix", sshAuthSock)
 			if err != nil {
 				slog.Error("Failed to open SSH auth socket", "err", err)
 			} else {
+				slog.Info("Using ssh agent", "socket", sshAuthSock)
 				agentClient := agent.NewClient(conn)
 				authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
 			}
