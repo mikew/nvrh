@@ -303,10 +303,23 @@ os.execute('chmod +x ' .. browser_script_path)
 return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
-
-
-
-
+	// Prepare the list-open-ports script.
+	listOpenPortsScriptPath := "/tmp/nvrh-list-open-ports"
+	batch.ExecLua(`
+local script_path = ...
+ 
+local script_contents = [[
+#!/bin/sh
+ 
+lsof -i4 -n -P | grep LISTEN | awk '{ print $9 }' | cut -d : -f 2
+]]
+script_contents = string.format(script_contents, socket_path, channel_id)
+ 
+vim.fn.writefile(vim.fn.split(script_contents, '\n'), script_path)
+os.execute('chmod +x ' .. script_path)
+ 
+return true
+       `, nil, listOpenPortsScriptPath)
 
 	if err := batch.Execute(); err != nil {
 		return err
