@@ -39,7 +39,7 @@ func GetSshClientForServer(endpoint *SshEndpoint) (*ssh.Client, error) {
 	}))
 
 	authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
-		password, err := askForPassword(fmt.Sprintf("Password for %s: ", endpoint))
+		password, err := askForPassword(fmt.Sprintf("%s's password: ", endpoint))
 		if err != nil {
 			slog.Error("Error reading password", "err", err)
 			return "", err
@@ -89,7 +89,7 @@ func getSignerForIdentityFile(hostname string) (ssh.Signer, error) {
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
 		if _, ok := err.(*ssh.PassphraseMissingError); ok {
-			passPhrase, _ := askForPassword(fmt.Sprintf("Passphrase for %s: ", identityFile))
+			passPhrase, _ := askForPassword(fmt.Sprintf("Enter passphrase for key '%s': ", identityFile))
 
 			signer, signerErr := ssh.ParsePrivateKeyWithPassphrase(key, passPhrase)
 			if signerErr != nil {

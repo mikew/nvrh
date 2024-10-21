@@ -22,7 +22,12 @@ type SshEndpoint struct {
 }
 
 func (e *SshEndpoint) String() string {
-	return fmt.Sprintf("%s@%s:%s", e.FinalUser(), e.GivenHost, e.FinalPort())
+	portPart := ""
+	if e.FinalPort() != "22" {
+		portPart = fmt.Sprintf(":%s", e.FinalPort())
+	}
+
+	return fmt.Sprintf("%s@%s%s", e.FinalUser(), e.FinalHost(), portPart)
 }
 
 func (e *SshEndpoint) FinalUser() string {
