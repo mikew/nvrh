@@ -4,29 +4,21 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
-	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/kevinburke/ssh_config"
 	"github.com/neovim/go-client/nvim"
-	"github.com/skeema/knownhosts"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/term"
 
 	"nvrh/src/context"
 	"nvrh/src/logger"
 	"nvrh/src/nvim_helpers"
-	"nvrh/src/ssh_helpers"
+	"nvrh/src/nvrh_ssh"
 )
 
 func defaultSshPath() string {
@@ -92,12 +84,12 @@ var CliClientOpenCommand = cli.Command{
 		// Prepare the context.
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
 
-		endpoint, err := ParseSshEndpoint(c.Args().Get(0))
+		endpoint, err := nvrh_ssh.ParseSshEndpoint(c.Args().Get(0))
 		if err != nil {
 			return err
 		}
 
-		sshClient, err := getSshClientForServer(endpoint)
+		sshClient, err := nvrh_ssh.GetSshClientForServer(endpoint)
 		if err != nil {
 			return err
 		}
@@ -144,21 +136,21 @@ var CliClientOpenCommand = cli.Command{
 
 		// Prepare remote instance.
 		go func() {
-			go ssh_helpers.TunnelSshSocket(nvrhContext, ssh_helpers.SshTunnelInfo{
+			go nvrh_ssh.TunnelSshSocket(nvrhContext, nvrh_ssh.SshTunnelInfo{
 				Mode:         "unix",
 				LocalSocket:  nvrhContext.LocalSocketPath,
 				RemoteSocket: nvrhContext.RemoteSocketPath,
 			})
 
-			nvimCommandString := ssh_helpers.BuildRemoteCommandString(nvrhContext)
+			nvimCommandString := nvrh_ssh.BuildRemoteCommandString(nvrhContext)
 			nvimCommandString = fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString)
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
-			if err := ssh_helpers.RunCommand(nvrhContext, nvimCommandString); err != nil {
+			if err := nvrh_ssh.RunCommand(nvrhContext, nvimCommandString); err != nil {
 				doneChan <- err
 			}
 
-			ssh_helpers.RunCommand(nvrhContext, fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath))
-			ssh_helpers.RunCommand(nvrhContext, fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath))
+			nvrh_ssh.RunCommand(nvrhContext, fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath))
+			nvrh_ssh.RunCommand(nvrhContext, fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath))
 		}()
 
 		// Prepare client instance.
@@ -246,7 +238,7 @@ func BuildClientNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 }
 
 func prepareRemoteNvim(nvrhContext *context.NvrhContext, nv *nvim.Nvim) error {
-	nv.RegisterHandler("tunnel-port", ssh_helpers.MakeRpcTunnelHandler(nvrhContext))
+	nv.RegisterHandler("tunnel-port", nvrh_ssh.MakeRpcTunnelHandler(nvrhContext))
 	nv.RegisterHandler("open-url", RpcHandleOpenUrl)
 
 	batch := nv.NewBatch()
@@ -355,231 +347,4 @@ func closeNvimSocket(nv *nvim.Nvim) {
 		slog.Warn("Error closing remote nvim", "err", err)
 	}
 	nv.Close()
-}
-
-func getSshClientForServer(endpoint *SshEndpoint) (*ssh.Client, error) {
-	kh, err := knownhosts.NewDB(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
-	if err != nil {
-		return nil, err
-	}
-
-	slog.Debug("Connecting to server", "endpoint", endpoint)
-
-	authMethods := []ssh.AuthMethod{}
-
-	authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
-		allSigners := []ssh.Signer{}
-
-		if agentSigners, _ := getSignersForIdentityAgent(endpoint.GivenHost); agentSigners != nil {
-			allSigners = append(allSigners, agentSigners...)
-		}
-
-		if identitySigner, _ := getSignerForIdentityFile(endpoint.GivenHost); identitySigner != nil {
-			allSigners = append(allSigners, identitySigner)
-		}
-
-		return allSigners, nil
-	}))
-
-	authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
-		password, err := askForPassword(fmt.Sprintf("Password for %s: ", endpoint))
-		if err != nil {
-			slog.Error("Error reading password", "err", err)
-			return "", err
-		}
-
-		return string(password), nil
-	}))
-
-	config := &ssh.ClientConfig{
-		User:              endpoint.FinalUser(),
-		Auth:              authMethods,
-		HostKeyCallback:   kh.HostKeyCallback(),
-		HostKeyAlgorithms: kh.HostKeyAlgorithms(fmt.Sprintf("%s:%s", endpoint.FinalHost(), endpoint.FinalPort())),
-	}
-
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", endpoint.FinalHost(), endpoint.FinalPort()), config)
-	if err != nil {
-		slog.Error("Failed to dial", "err", err)
-		return nil, err
-	}
-
-	return client, nil
-}
-
-func getSignerForIdentityFile(hostname string) (ssh.Signer, error) {
-	identityFile := ssh_config.Get(hostname, "IdentityFile")
-
-	if identityFile == "" {
-		return nil, nil
-	}
-
-	identityFile = cleanupSshConfigValue(identityFile)
-
-	if _, err := os.Stat(identityFile); os.IsNotExist(err) {
-		slog.Error("Identity file does not exist", "identityFile", identityFile)
-		return nil, err
-	}
-
-	slog.Info("Using identity file", "identityFile", identityFile)
-
-	key, err := os.ReadFile(identityFile)
-	if err != nil {
-		slog.Error("Unable to read private key", "err", err)
-		return nil, err
-	}
-
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		if _, ok := err.(*ssh.PassphraseMissingError); ok {
-			passPhrase, _ := askForPassword(fmt.Sprintf("Passphrase for %s: ", identityFile))
-
-			signer, signerErr := ssh.ParsePrivateKeyWithPassphrase(key, passPhrase)
-			if signerErr != nil {
-				slog.Error("Unable to parse private key", "err", signerErr)
-				return nil, signerErr
-			}
-
-			return signer, nil
-		}
-
-		slog.Error("Unable to parse private key", "err", err)
-		return nil, err
-	}
-
-	return signer, nil
-}
-
-func getSignersForIdentityAgent(hostname string) ([]ssh.Signer, error) {
-	sshAuthSock := ssh_config.Get(hostname, "IdentityAgent")
-
-	if sshAuthSock == "" {
-		sshAuthSock = os.Getenv("SSH_AUTH_SOCK")
-	}
-
-	if sshAuthSock == "" {
-		return nil, nil
-	}
-
-	sshAuthSock = cleanupSshConfigValue(sshAuthSock)
-
-	conn, err := net.Dial("unix", sshAuthSock)
-	if err != nil {
-		slog.Error("Failed to open SSH auth socket", "err", err)
-		return nil, err
-	}
-
-	slog.Info("Using ssh agent", "socket", sshAuthSock)
-	agentClient := agent.NewClient(conn)
-	agentSigners, err := agentClient.Signers()
-	if err != nil {
-		slog.Error("Error getting signers from agent", "err", err)
-		return nil, err
-	}
-
-	return agentSigners, nil
-}
-
-func cleanupSshConfigValue(value string) string {
-	replaced := strings.Trim(value, "\"")
-
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		slog.Warn("Error getting user home dir", "err", err)
-		return replaced
-	}
-
-	replaced = strings.ReplaceAll(replaced, "$HOME", userHomeDir)
-	if strings.HasPrefix(replaced, "~/") {
-		replaced = strings.Replace(replaced, "~", userHomeDir, 1)
-	}
-
-	return replaced
-}
-
-// TODO Really needs "GivenHostName", "ResolvedHostName", etc
-type SshEndpoint struct {
-	GivenUser     string
-	SshConfigUser string
-	FallbackUser  string
-
-	GivenHost     string
-	SshConfigHost string
-
-	GivenPort     string
-	SshConfigPort string
-}
-
-func (e *SshEndpoint) String() string {
-	return fmt.Sprintf("%s@%s:%s", e.FinalUser(), e.GivenHost, e.FinalPort())
-}
-
-func (e *SshEndpoint) FinalUser() string {
-	if e.GivenUser != "" {
-		return e.GivenUser
-	}
-
-	if e.SshConfigUser != "" {
-		return e.SshConfigUser
-	}
-
-	return e.FallbackUser
-}
-
-func (e *SshEndpoint) FinalHost() string {
-	if e.SshConfigHost != "" {
-		return e.SshConfigHost
-	}
-
-	return e.GivenHost
-}
-
-func (e *SshEndpoint) FinalPort() string {
-	if e.GivenPort != "" {
-		return e.GivenPort
-	}
-
-	if e.SshConfigPort != "" {
-		return e.SshConfigPort
-	}
-
-	return "22"
-}
-
-func ParseSshEndpoint(server string) (*SshEndpoint, error) {
-	currentUser, err := user.Current()
-
-	if err != nil {
-		slog.Error("Error getting current user", "err", err)
-		return nil, err
-	}
-
-	parsed, err := url.Parse(fmt.Sprintf("ssh://%s", server))
-	if err != nil {
-		return nil, err
-	}
-
-	return &SshEndpoint{
-		GivenUser:     parsed.User.Username(),
-		SshConfigUser: ssh_config.Get(parsed.Hostname(), "User"),
-		FallbackUser:  currentUser.Username,
-
-		GivenHost:     parsed.Hostname(),
-		SshConfigHost: ssh_config.Get(parsed.Hostname(), "HostName"),
-
-		GivenPort:     parsed.Port(),
-		SshConfigPort: ssh_config.Get(parsed.Hostname(), "Port"),
-	}, nil
-}
-
-func askForPassword(message string) ([]byte, error) {
-	fmt.Print(message)
-	password, err := term.ReadPassword(0)
-	fmt.Println()
-
-	if err != nil {
-		return nil, err
-	}
-
-	return password, nil
 }

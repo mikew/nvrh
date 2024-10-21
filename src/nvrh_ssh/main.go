@@ -1,4 +1,4 @@
-package ssh_helpers
+package nvrh_ssh
 
 import (
 	"fmt"
