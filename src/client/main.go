@@ -381,64 +381,24 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 
 	authMethods := []ssh.AuthMethod{}
 
-	// authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
-	// 	identityFile := ssh_config.Get(endpoint.Host, "IdentityFile")
+	authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+		allSigners := []ssh.Signer{}
 
-	// 	if identityFile == "" {
-	// 		return nil, nil
-	// 	}
-
-	// 	if _, err := os.Stat(identityFile); os.IsNotExist(err) {
-	// 		slog.Error("Identity file does not exist", "identityFile", identityFile)
-	// 		return nil, err
-	// 	}
-
-	// 	slog.Info("Using identity file", "identityFile", identityFile)
-
-	// 	key, err := os.ReadFile(identityFile)
-	// 	if err != nil {
-	// 		slog.Error("unable to read private key", "err", err)
-	// 		return nil, err
-	// 	}
-
-	// 	// Create the Signer for this private key.
-	// 	signer, err := ssh.ParsePrivateKey(key)
-	// 	if err != nil {
-	// 		slog.Error("unable to parse private key", "err", err)
-	// 		return nil, err
-	// 	}
-
-	// 	return []ssh.Signer{signer}, nil
-	// }))
-
-	sshAuthSock := ssh_config.Get(endpoint.Host, "IdentityAgent")
-	if sshAuthSock == "" {
-		sshAuthSock = os.Getenv("SSH_AUTH_SOCK")
-	}
-
-	if sshAuthSock != "" {
-		userHomeDir, err := os.UserHomeDir()
-		if err != nil {
-			slog.Error("Error getting user home dir", "err", err)
-		} else {
-			sshAuthSock = strings.ReplaceAll(sshAuthSock, "\"", "")
-			sshAuthSock = strings.ReplaceAll(sshAuthSock, "$HOME", userHomeDir)
-			sshAuthSock = strings.ReplaceAll(sshAuthSock, "~", userHomeDir)
-
-			conn, err := net.Dial("unix", sshAuthSock)
-			if err != nil {
-				slog.Error("Failed to open SSH auth socket", "err", err)
-			} else {
-				slog.Info("Using ssh agent", "socket", sshAuthSock)
-				agentClient := agent.NewClient(conn)
-				authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
-			}
+		if identitySigner, _ := getSignerForIdentityFile(endpoint.Host); identitySigner != nil {
+			allSigners = append(allSigners, identitySigner)
 		}
-	}
+
+		if agentSigners, _ := getSignersForIdentityAgent(endpoint.Host); agentSigners != nil {
+			allSigners = append(allSigners, agentSigners...)
+		}
+
+		return allSigners, nil
+	}))
 
 	authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
 		fmt.Printf("Password for %s: ", endpoint)
 		password, err := terminal.ReadPassword(0)
+		fmt.Println()
 		if err != nil {
 			slog.Error("Error reading password", "err", err)
 			return "", err
@@ -463,6 +423,85 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 	return client, nil
 }
 
+func getSignerForIdentityFile(hostname string) (ssh.Signer, error) {
+	identityFile := ssh_config.Get(hostname, "IdentityFile")
+
+	if identityFile == "" {
+		return nil, nil
+	}
+
+	identityFile = cleanupSshConfigValue(identityFile)
+
+	if _, err := os.Stat(identityFile); os.IsNotExist(err) {
+		slog.Error("Identity file does not exist", "identityFile", identityFile)
+		return nil, err
+	}
+
+	slog.Info("Using identity file", "identityFile", identityFile)
+
+	key, err := os.ReadFile(identityFile)
+	if err != nil {
+		slog.Error("Unable to read private key", "err", err)
+		return nil, err
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		slog.Error("Unable to parse private key", "err", err)
+		return nil, err
+	}
+
+	return signer, nil
+}
+
+func getSignersForIdentityAgent(hostname string) ([]ssh.Signer, error) {
+	sshAuthSock := ssh_config.Get(hostname, "IdentityAgent")
+
+	if sshAuthSock == "" {
+		sshAuthSock = os.Getenv("SSH_AUTH_SOCK")
+	}
+
+	if sshAuthSock == "" {
+		return nil, nil
+	}
+
+	sshAuthSock = cleanupSshConfigValue(sshAuthSock)
+
+	conn, err := net.Dial("unix", sshAuthSock)
+	if err != nil {
+		slog.Error("Failed to open SSH auth socket", "err", err)
+		return nil, err
+	}
+
+	slog.Info("Using ssh agent", "socket", sshAuthSock)
+	agentClient := agent.NewClient(conn)
+	agentSigners, err := agentClient.Signers()
+	if err != nil {
+		slog.Error("Error getting signers from agent", "err", err)
+		return nil, err
+	}
+
+	return agentSigners, nil
+}
+
+func cleanupSshConfigValue(value string) string {
+	replaced := strings.Trim(value, "\"")
+
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		slog.Warn("Error getting user home dir", "err", err)
+		return replaced
+	}
+
+	replaced = strings.ReplaceAll(replaced, "$HOME", userHomeDir)
+	if strings.HasPrefix(replaced, "~/") {
+		replaced = strings.Replace(replaced, "~", userHomeDir, 1)
+	}
+
+	return replaced
+}
+
+// TODO Really needs "GivenHostName", "ResolvedHostName", etc
 type Endpoint struct {
 	User string
 	Host string
