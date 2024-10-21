@@ -92,7 +92,7 @@ var CliClientOpenCommand = cli.Command{
 		// Prepare the context.
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
 
-		endpoint, err := parseServerString(c.Args().Get(0))
+		endpoint, err := ParseSshEndpoint(c.Args().Get(0))
 		if err != nil {
 			return err
 		}
@@ -357,7 +357,7 @@ func closeNvimSocket(nv *nvim.Nvim) {
 	nv.Close()
 }
 
-func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
+func getSshClientForServer(endpoint *SshEndpoint) (*ssh.Client, error) {
 	kh, err := knownhosts.NewDB(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
 	if err != nil {
 		return nil, err
@@ -392,13 +392,13 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 	}))
 
 	config := &ssh.ClientConfig{
-		User:              endpoint.User,
+		User:              endpoint.FinalUser(),
 		Auth:              authMethods,
 		HostKeyCallback:   kh.HostKeyCallback(),
-		HostKeyAlgorithms: kh.HostKeyAlgorithms(fmt.Sprintf("%s:%s", endpoint.Host, endpoint.Port)),
+		HostKeyAlgorithms: kh.HostKeyAlgorithms(fmt.Sprintf("%s:%s", endpoint.FinalHost(), endpoint.FinalPort())),
 	}
 
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", endpoint.Host, endpoint.Port), config)
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", endpoint.FinalHost(), endpoint.FinalPort()), config)
 	if err != nil {
 		slog.Error("Failed to dial", "err", err)
 		return nil, err
@@ -498,17 +498,55 @@ func cleanupSshConfigValue(value string) string {
 }
 
 // TODO Really needs "GivenHostName", "ResolvedHostName", etc
-type Endpoint struct {
-	User string
-	Host string
-	Port string
+type SshEndpoint struct {
+	GivenUser     string
+	SshConfigUser string
+	FallbackUser  string
+
+	GivenHost     string
+	SshConfigHost string
+
+	GivenPort     string
+	SshConfigPort string
 }
 
-func (e *Endpoint) String() string {
-	return fmt.Sprintf("%s@%s:%s", e.User, e.Host, e.Port)
+func (e *SshEndpoint) String() string {
+	return fmt.Sprintf("%s@%s:%s", e.FinalUser(), e.GivenHost, e.FinalPort())
 }
 
-func parseServerString(server string) (*Endpoint, error) {
+func (e *SshEndpoint) FinalUser() string {
+	if e.GivenUser != "" {
+		return e.GivenUser
+	}
+
+	if e.SshConfigUser != "" {
+		return e.SshConfigUser
+	}
+
+	return e.FallbackUser
+}
+
+func (e *SshEndpoint) FinalHost() string {
+	if e.SshConfigHost != "" {
+		return e.SshConfigHost
+	}
+
+	return e.GivenHost
+}
+
+func (e *SshEndpoint) FinalPort() string {
+	if e.GivenPort != "" {
+		return e.GivenPort
+	}
+
+	if e.SshConfigPort != "" {
+		return e.SshConfigPort
+	}
+
+	return "22"
+}
+
+func ParseSshEndpoint(server string) (*SshEndpoint, error) {
 	currentUser, err := user.Current()
 
 	if err != nil {
@@ -516,44 +554,21 @@ func parseServerString(server string) (*Endpoint, error) {
 		return nil, err
 	}
 
-	fallbackUsername := currentUser.Username
-	fallbackPort := "22"
-
 	parsed, err := url.Parse(fmt.Sprintf("ssh://%s", server))
 	if err != nil {
 		return nil, err
 	}
 
-	givenHostname := parsed.Hostname()
-	givenUsername := parsed.User.Username()
-	givenPort := parsed.Port()
+	return &SshEndpoint{
+		GivenUser:     parsed.User.Username(),
+		SshConfigUser: ssh_config.Get(parsed.Hostname(), "User"),
+		FallbackUser:  currentUser.Username,
 
-	finalUsername := givenUsername
-	if finalUsername == "" {
-		finalUsername = ssh_config.Get(givenHostname, "User")
-	}
-	if finalUsername == "" {
-		finalUsername = fallbackUsername
-	}
+		GivenHost:     parsed.Hostname(),
+		SshConfigHost: ssh_config.Get(parsed.Hostname(), "HostName"),
 
-	finalPort := givenPort
-	if finalPort == "" {
-		finalPort = ssh_config.Get(givenHostname, "Port")
-	}
-	if finalPort == "" {
-		finalPort = fallbackPort
-	}
-
-	finalHostname := givenHostname
-	configHostname := ssh_config.Get(givenHostname, "HostName")
-	if configHostname != "" {
-		finalHostname = configHostname
-	}
-
-	return &Endpoint{
-		User: finalUsername,
-		Host: finalHostname,
-		Port: finalPort,
+		GivenPort:     parsed.Port(),
+		SshConfigPort: ssh_config.Get(parsed.Hostname(), "Port"),
 	}, nil
 }
 
