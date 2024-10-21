@@ -447,19 +447,20 @@ func getSignerForIdentityFile(hostname string) (ssh.Signer, error) {
 
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		slog.Error("Unable to parse private key, maybe it's password protected", "err", err)
+		if _, ok := err.(*ssh.PassphraseMissingError); ok {
+			passPhrase, _ := askForPassword(fmt.Sprintf("Passphrase for %s: ", identityFile))
 
-		fmt.Printf("Passphrase for %s: ", identityFile)
-		passPhrase, _ := term.ReadPassword(0)
-		fmt.Println()
+			signer, signerErr := ssh.ParsePrivateKeyWithPassphrase(key, passPhrase)
+			if signerErr != nil {
+				slog.Error("Unable to parse private key", "err", signerErr)
+				return nil, signerErr
+			}
 
-		signer, signerErr := ssh.ParsePrivateKeyWithPassphrase(key, passPhrase)
-		if signerErr != nil {
-			slog.Error("Unable to parse private key", "err", signerErr)
-			return nil, signerErr
+			return signer, nil
 		}
 
-		return signer, nil
+		slog.Error("Unable to parse private key", "err", err)
+		return nil, err
 	}
 
 	return signer, nil
