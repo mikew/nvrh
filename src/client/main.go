@@ -23,7 +23,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"nvrh/src/context"
 	"nvrh/src/nvim_helpers"
@@ -397,7 +397,7 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 
 	authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
 		fmt.Printf("Password for %s: ", endpoint)
-		password, err := terminal.ReadPassword(0)
+		password, err := term.ReadPassword(0)
 		fmt.Println()
 		if err != nil {
 			slog.Error("Error reading password", "err", err)
@@ -447,8 +447,19 @@ func getSignerForIdentityFile(hostname string) (ssh.Signer, error) {
 
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		slog.Error("Unable to parse private key", "err", err)
-		return nil, err
+		slog.Error("Unable to parse private key, maybe it's password protected", "err", err)
+
+		fmt.Printf("Passphrase for %s: ", identityFile)
+		passPhrase, _ := term.ReadPassword(0)
+		fmt.Println()
+
+		signer, signerErr := ssh.ParsePrivateKeyWithPassphrase(key, passPhrase)
+		if signerErr != nil {
+			slog.Error("Unable to parse private key", "err", signerErr)
+			return nil, signerErr
+		}
+
+		return signer, nil
 	}
 
 	return signer, nil
