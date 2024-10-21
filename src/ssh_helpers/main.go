@@ -20,7 +20,7 @@ func BuildRemoteNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 
 	tunnel := fmt.Sprintf("%s:%s", nvrhContext.LocalSocketPath, nvrhContext.RemoteSocketPath)
 	if nvrhContext.ShouldUsePorts {
-		tunnel = fmt.Sprintf("%d:0.0.0.0:%d", nvrhContext.PortNumber, nvrhContext.PortNumber)
+		tunnel = fmt.Sprintf("%d:127.0.0.1:%d", nvrhContext.PortNumber, nvrhContext.PortNumber)
 	}
 
 	sshCommand := exec.Command(
@@ -59,10 +59,13 @@ func BuildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 	}
 
 	return fmt.Sprintf(
-		"%s nvim --headless --listen \"%s\" --cmd \"cd %s\"",
+		"%s nvim --headless --listen \"%s\" --cmd \"cd %s\"; rm -f \"%s\"; [ %t = true ] && rm -f \"%s\"",
 		envPairsString,
 		nvrhContext.RemoteSocketOrPort(),
 		nvrhContext.RemoteDirectory,
+		nvrhContext.BrowserScriptPath,
+		!nvrhContext.ShouldUsePorts,
+		nvrhContext.RemoteSocketPath,
 	)
 }
 
