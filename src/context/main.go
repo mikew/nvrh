@@ -26,7 +26,7 @@ type NvrhContext struct {
 	Debug   bool
 }
 
-func (nc NvrhContext) LocalSocketOrPort() string {
+func (nc *NvrhContext) LocalSocketOrPort() string {
 	if nc.ShouldUsePorts {
 		// nvim-qt, at least on Windows (and might have something to do with
 		// running in a VM) seems to prefer `127.0.0.1` to `0.0.0.0`, and I think
@@ -37,7 +37,7 @@ func (nc NvrhContext) LocalSocketOrPort() string {
 	return nc.LocalSocketPath
 }
 
-func (nc NvrhContext) RemoteSocketOrPort() string {
+func (nc *NvrhContext) RemoteSocketOrPort() string {
 	if nc.ShouldUsePorts {
 		return fmt.Sprintf("127.0.0.1:%d", nc.PortNumber)
 	}
