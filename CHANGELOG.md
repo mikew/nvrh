@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.14 (2024-10-21)
+
+
+### Features
+
+* Use loopback ([#26](https://github.com/mikew/nvrh/issues/26)) ([d5abb3a](https://github.com/mikew/nvrh/commit/d5abb3a3a205e3195a67e2edbcc222a593cc5466))
+
 ## 0.1.13 (2024-10-13)
 
 
