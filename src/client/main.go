@@ -370,12 +370,12 @@ func getSshClientForServer(endpoint *SshEndpoint) (*ssh.Client, error) {
 	authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
 		allSigners := []ssh.Signer{}
 
-		if identitySigner, _ := getSignerForIdentityFile(endpoint.Host); identitySigner != nil {
-			allSigners = append(allSigners, identitySigner)
+		if agentSigners, _ := getSignersForIdentityAgent(endpoint.GivenHost); agentSigners != nil {
+			allSigners = append(allSigners, agentSigners...)
 		}
 
-		if agentSigners, _ := getSignersForIdentityAgent(endpoint.Host); agentSigners != nil {
-			allSigners = append(allSigners, agentSigners...)
+		if identitySigner, _ := getSignerForIdentityFile(endpoint.GivenHost); identitySigner != nil {
+			allSigners = append(allSigners, identitySigner)
 		}
 
 		return allSigners, nil
