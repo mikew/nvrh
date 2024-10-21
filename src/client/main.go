@@ -396,9 +396,7 @@ func getSshClientForServer(endpoint *Endpoint) (*ssh.Client, error) {
 	}))
 
 	authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
-		fmt.Printf("Password for %s: ", endpoint)
-		password, err := term.ReadPassword(0)
-		fmt.Println()
+		password, err := askForPassword(fmt.Sprintf("Password for %s: ", endpoint))
 		if err != nil {
 			slog.Error("Error reading password", "err", err)
 			return "", err
@@ -571,4 +569,16 @@ func parseServerString(server string) (*Endpoint, error) {
 		Host: finalHostname,
 		Port: finalPort,
 	}, nil
+}
+
+func askForPassword(message string) ([]byte, error) {
+	fmt.Print(message)
+	password, err := term.ReadPassword(0)
+	fmt.Println()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return password, nil
 }
