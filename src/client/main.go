@@ -10,13 +10,11 @@ import (
 	"os/exec"
 	"os/signal"
 	"os/user"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/dusted-go/logging/prettylog"
 	"github.com/kevinburke/ssh_config"
 	"github.com/neovim/go-client/nvim"
 	"github.com/skeema/knownhosts"
