@@ -91,30 +91,3 @@ func ParseSshEndpoint(server string) (*SshEndpoint, error) {
 		SshConfigPort: ssh_config.Get(parsed.Hostname(), "Port"),
 	}, nil
 }
-
-// type Wut struct {
-// }
-
-// func (w *Wut) DoIt() {
-// 	fmt.Println("Doing it!")
-// }
-
-// type Huh struct {
-// }
-
-// func (w *Huh) DoIt() {
-// 	fmt.Println("Doing it!")
-// }
-
-// type Luh interface {
-// 	DoIt()
-// }
-
-// func luh(w Luh) {
-// 	w.DoIt()
-// }
-
-// func giver() {
-// 	luh(Luh(&Wut{}))
-// 	luh(Luh(&Huh{}))
-// }
