@@ -61,7 +61,7 @@ func (c *NvrhInternalSshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunn
 	}
 
 	// Listen on the local Unix socket
-	localListener, err := tunnelInfo.LocalListener(tunnelInfo.Public)
+	localListener, err := LocalListenerFromTunnelInfo(tunnelInfo)
 	if err != nil {
 		slog.Error("Failed to listen on local socket", "err", err)
 		return
@@ -87,7 +87,7 @@ func (c *NvrhInternalSshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunn
 		}
 
 		// Establish a connection to the remote socket via SSH
-		remoteConn, err := tunnelInfo.RemoteListener(c.SshClient)
+		remoteConn, err := RemoteListenerFromTunnelInfo(tunnelInfo, c.SshClient)
 		if err != nil {
 			slog.Error("Failed to dial remote socket", "err", err)
 			localConn.Close()
@@ -109,4 +109,31 @@ func handleConnection(localConn net.Conn, remoteConn net.Conn) {
 	go io.Copy(remoteConn, localConn)
 	// Copy data from remote to local
 	io.Copy(localConn, remoteConn)
+}
+
+func LocalListenerFromTunnelInfo(ti *ssh_tunnel_info.SshTunnelInfo) (net.Listener, error) {
+	switch ti.Mode {
+	case "unix":
+		return net.Listen("unix", ti.LocalSocket)
+	case "port":
+		ip := "localhost"
+		if ti.Public {
+			ip = "0.0.0.0"
+		}
+
+		return net.Listen("tcp", fmt.Sprintf("%s:%s", ip, ti.LocalSocket))
+	}
+
+	return nil, fmt.Errorf("Invalid mode: %s", ti.Mode)
+}
+
+func RemoteListenerFromTunnelInfo(ti *ssh_tunnel_info.SshTunnelInfo, sshClient *ssh.Client) (net.Conn, error) {
+	switch ti.Mode {
+	case "unix":
+		return sshClient.Dial("unix", ti.RemoteSocket)
+	case "port":
+		return sshClient.Dial("tcp", fmt.Sprintf("localhost:%s", ti.RemoteSocket))
+	}
+
+	return nil, fmt.Errorf("Invalid mode: %s", ti.Mode)
 }

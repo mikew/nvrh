@@ -1,4 +1,4 @@
-package nvrh_ssh
+package go_ssh_ext
 
 import (
 	"fmt"

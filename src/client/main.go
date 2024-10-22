@@ -16,12 +16,12 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"nvrh/src/context"
+	"nvrh/src/go_ssh_ext"
 	"nvrh/src/logger"
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/nvrh_base_ssh"
 	"nvrh/src/nvrh_binary_ssh"
 	"nvrh/src/nvrh_internal_ssh"
-	"nvrh/src/nvrh_ssh"
 	"nvrh/src/ssh_endpoint"
 	"nvrh/src/ssh_tunnel_info"
 )
@@ -115,12 +115,12 @@ var CliClientOpenCommand = cli.Command{
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
-			SshPath: c.String("ssh-path"),
+			SshPath: sshPath,
 			Debug:   isDebug,
 		}
 
 		if sshPath == "internal" {
-			sshClient, err := nvrh_ssh.GetSshClientForEndpoint(endpoint)
+			sshClient, err := go_ssh_ext.GetSshClientForEndpoint(endpoint)
 			if err != nil {
 				return err
 			}
