@@ -1,4 +1,4 @@
-package nvrh_ssh
+package ssh_endpoint
 
 import (
 	"fmt"
@@ -10,6 +10,8 @@ import (
 )
 
 type SshEndpoint struct {
+	Given string
+
 	GivenUser     string
 	SshConfigUser string
 	FallbackUser  string
@@ -76,6 +78,8 @@ func ParseSshEndpoint(server string) (*SshEndpoint, error) {
 	}
 
 	return &SshEndpoint{
+		Given: server,
+
 		GivenUser:     parsed.User.Username(),
 		SshConfigUser: ssh_config.Get(parsed.Hostname(), "User"),
 		FallbackUser:  currentUser.Username,
@@ -87,3 +91,30 @@ func ParseSshEndpoint(server string) (*SshEndpoint, error) {
 		SshConfigPort: ssh_config.Get(parsed.Hostname(), "Port"),
 	}, nil
 }
+
+// type Wut struct {
+// }
+
+// func (w *Wut) DoIt() {
+// 	fmt.Println("Doing it!")
+// }
+
+// type Huh struct {
+// }
+
+// func (w *Huh) DoIt() {
+// 	fmt.Println("Doing it!")
+// }
+
+// type Luh interface {
+// 	DoIt()
+// }
+
+// func luh(w Luh) {
+// 	w.DoIt()
+// }
+
+// func giver() {
+// 	luh(Luh(&Wut{}))
+// 	luh(Luh(&Huh{}))
+// }

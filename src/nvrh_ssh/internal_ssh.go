@@ -12,9 +12,11 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/term"
+
+	"nvrh/src/ssh_endpoint"
 )
 
-func GetSshClientForServer(endpoint *SshEndpoint) (*ssh.Client, error) {
+func GetSshClientForEndpoint(endpoint *ssh_endpoint.SshEndpoint) (*ssh.Client, error) {
 	kh, err := knownhosts.NewDB(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
 	if err != nil {
 		return nil, err

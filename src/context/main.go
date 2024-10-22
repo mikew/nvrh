@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os/exec"
 
-	"golang.org/x/crypto/ssh"
+	"nvrh/src/nvrh_base_ssh"
+	"nvrh/src/ssh_endpoint"
 )
 
 type NvrhContext struct {
 	SessionId       string
-	Server          string
+	Endpoint        *ssh_endpoint.SshEndpoint
 	RemoteDirectory string
 
 	LocalSocketPath  string
@@ -27,7 +28,7 @@ type NvrhContext struct {
 	SshPath string
 	Debug   bool
 
-	SshClient *ssh.Client
+	SshClient nvrh_base_ssh.BaseNvrhSshClient
 }
 
 func (nc *NvrhContext) LocalSocketOrPort() string {
