@@ -1,7 +1,6 @@
 package nvrh_binary_ssh
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
