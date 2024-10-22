@@ -168,12 +168,12 @@ var CliClientOpenCommand = cli.Command{
 			nvimCommandString := nvim_helpers.BuildRemoteCommandString(nvrhContext)
 			nvimCommandString = fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString)
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
-			if err := nvrhContext.SshClient.Run(nvimCommandString); err != nil {
+			if err := nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo); err != nil {
 				doneChan <- err
 			}
 
-			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath))
-			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath))
+			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath), nil)
+			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath), nil)
 		}()
 
 		// Prepare client instance.
