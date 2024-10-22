@@ -152,22 +152,18 @@ var CliClientOpenCommand = cli.Command{
 
 		// Prepare remote instance.
 		go func() {
-			go func() {
-				tunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
-					Mode:         "unix",
-					LocalSocket:  nvrhContext.LocalSocketOrPort(),
-					RemoteSocket: nvrhContext.RemoteSocketOrPort(),
-					Public:       false,
-				}
+			tunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
+				Mode:         "unix",
+				LocalSocket:  nvrhContext.LocalSocketPath,
+				RemoteSocket: nvrhContext.RemoteSocketPath,
+				Public:       false,
+			}
 
-				if nvrhContext.ShouldUsePorts {
-					tunnelInfo.Mode = "port"
-					tunnelInfo.LocalSocket = fmt.Sprintf("%d", nvrhContext.PortNumber)
-					tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.PortNumber)
-				}
-
-				nvrhContext.SshClient.TunnelSocket(tunnelInfo)
-			}()
+			if nvrhContext.ShouldUsePorts {
+				tunnelInfo.Mode = "port"
+				tunnelInfo.LocalSocket = fmt.Sprintf("%d", nvrhContext.PortNumber)
+				tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.PortNumber)
+			}
 
 			nvimCommandString := nvim_helpers.BuildRemoteCommandString(nvrhContext)
 			nvimCommandString = fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString)

@@ -5,7 +5,7 @@ import (
 )
 
 type BaseNvrhSshClient interface {
-	Run(command string) error
+	Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error
 	TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo)
 	Close() error
 }

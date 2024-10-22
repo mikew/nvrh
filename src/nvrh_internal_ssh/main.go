@@ -26,9 +26,13 @@ func (c *NvrhInternalSshClient) Close() error {
 	return c.SshClient.Close()
 }
 
-func (c *NvrhInternalSshClient) Run(command string) error {
+func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
 	if c.SshClient == nil {
 		return fmt.Errorf("ssh client not initialized")
+	}
+
+	if tunnelInfo != nil {
+		go c.TunnelSocket(tunnelInfo)
 	}
 
 	session, err := c.SshClient.NewSession()

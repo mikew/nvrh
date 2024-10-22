@@ -1,6 +1,7 @@
 package nvrh_binary_ssh
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -17,12 +18,18 @@ func (c *NvrhBinarySshClient) Close() error {
 	return nil
 }
 
-func (c *NvrhBinarySshClient) Run(command string) error {
+func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
+	args := []string{}
+
+	if tunnelInfo != nil {
+		args = append(args, "-L", tunnelInfo.BoundToIp())
+	}
+
+	args = append(args, "-t", c.Ctx.Endpoint.Given, command)
+
 	sshCommand := exec.Command(
 		c.Ctx.SshPath,
-		"-t",
-		c.Ctx.Endpoint.Given,
-		command,
+		args...,
 	)
 
 	c.Ctx.CommandsToKill = append(c.Ctx.CommandsToKill, sshCommand)
