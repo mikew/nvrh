@@ -52,9 +52,9 @@ var CliClientOpenCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "ssh-path",
-			Usage:   "Path to SSH binary. Defaults to ssh on Unix, C:\\Windows\\System32\\OpenSSH\\ssh.exe on Windows",
+			Usage:   "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary",
 			EnvVars: []string{"NVRH_CLIENT_SSH_PATH"},
-			Value:   defaultSshPath(),
+			Value:   "binary",
 		},
 
 		&cli.BoolFlag{
@@ -94,6 +94,9 @@ var CliClientOpenCommand = cli.Command{
 
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
 		sshPath := c.String("ssh-path")
+		if sshPath == "binary" {
+			sshPath = defaultSshPath()
+		}
 
 		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
 		if endpointErr != nil {
@@ -119,7 +122,7 @@ var CliClientOpenCommand = cli.Command{
 			Debug:   isDebug,
 		}
 
-		if sshPath == "internal" {
+		if nvrhContext.SshPath == "internal" {
 			sshClient, err := go_ssh_ext.GetSshClientForEndpoint(endpoint)
 			if err != nil {
 				return err
