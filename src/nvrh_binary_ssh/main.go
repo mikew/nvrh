@@ -26,6 +26,8 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 
 	args = append(args, "-t", c.Ctx.Endpoint.Given, command)
 
+	slog.Debug("Running command via SSH", "command", command)
+
 	sshCommand := exec.Command(
 		c.Ctx.SshPath,
 		args...,

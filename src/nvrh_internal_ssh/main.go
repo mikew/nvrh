@@ -31,6 +31,8 @@ func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.
 		return fmt.Errorf("ssh client not initialized")
 	}
 
+	slog.Debug("Running command via SSH", "command", command)
+
 	if tunnelInfo != nil {
 		go c.TunnelSocket(tunnelInfo)
 	}
