@@ -138,8 +138,6 @@ var CliClientOpenCommand = cli.Command{
 			})
 		}
 
-		defer nvrhContext.SshClient.Close()
-
 		if nvrhContext.ShouldUsePorts {
 			min := 1025
 			max := 65535
@@ -171,12 +169,8 @@ var CliClientOpenCommand = cli.Command{
 			nvimCommandString := nvim_helpers.BuildRemoteCommandString(nvrhContext)
 			nvimCommandString = fmt.Sprintf("$SHELL -i -c '%s'", nvimCommandString)
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
-			if err := nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo); err != nil {
-				doneChan <- err
-			}
 
-			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath), nil)
-			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath), nil)
+			nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
 		}()
 
 		// Prepare client instance.
@@ -236,6 +230,12 @@ var CliClientOpenCommand = cli.Command{
 		closeNvimSocket(nv)
 		killAllCmds(nvrhContext.CommandsToKill)
 		os.Remove(nvrhContext.LocalSocketPath)
+		if nvrhContext.SshClient != nil {
+			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath), nil)
+			nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath), nil)
+
+			nvrhContext.SshClient.Close()
+		}
 
 		if err != nil {
 			return err
