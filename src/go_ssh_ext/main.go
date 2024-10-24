@@ -17,10 +17,63 @@ import (
 )
 
 func GetSshClientForEndpoint(endpoint *ssh_endpoint.SshEndpoint) (*ssh.Client, error) {
-	kh, err := knownhosts.NewDB(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
+	knownhostsPath := filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts")
+
+	if _, err := os.Stat(knownhostsPath); os.IsNotExist(err) {
+		f, ferr := os.Create(knownhostsPath)
+		os.OpenFile(knownhostsPath, os.O_CREATE|os.O_RDONLY, 0600)
+		if ferr != nil {
+			return nil, ferr
+		}
+
+		f.Close()
+	}
+
+	kh, err := knownhosts.NewDB(knownhostsPath)
+
 	if err != nil {
 		return nil, err
 	}
+
+	hostKeyCallback := ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		slog.Debug("Checking host key", "hostname", hostname, "remote", remote, "key", key)
+		err := kh.HostKeyCallback()(hostname, remote, key)
+
+		if knownhosts.IsHostKeyChanged(err) {
+			return fmt.Errorf("REMOTE HOST IDENTIFICATION HAS CHANGED for host %s! This may indicate a MitM attack.", hostname)
+		}
+
+		if knownhosts.IsHostUnknown(err) {
+			fmt.Print(fmt.Sprintf(`The authenticity of host '%s (%s)' can't be established.
+%s key fingerprint is %s.
+Are you sure you want to continue connecting (yes/no)? `,
+				hostname, remote, key.Type(), ssh.FingerprintSHA256(key),
+			))
+			var response string
+			fmt.Scanf("%v", &response)
+
+			if response != "yes" {
+				return fmt.Errorf("Host key verification failed.")
+			}
+
+			f, ferr := os.OpenFile(knownhostsPath, os.O_APPEND|os.O_WRONLY, 0600)
+			if ferr == nil {
+				defer f.Close()
+				ferr = knownhosts.WriteKnownHost(f, hostname, remote, key)
+			}
+			if ferr == nil {
+				slog.Info("Added host to known_hosts\n", "hostname", hostname)
+			} else {
+				slog.Error("Failed to add host to known_hosts\n", "hostname", hostname, "ferr", ferr)
+				return ferr
+			}
+
+			// permit previously-unknown hosts (warning: may be insecure)
+			return nil
+		}
+
+		return err
+	})
 
 	slog.Debug("Connecting to server", "endpoint", endpoint)
 
@@ -53,7 +106,7 @@ func GetSshClientForEndpoint(endpoint *ssh_endpoint.SshEndpoint) (*ssh.Client, e
 	config := &ssh.ClientConfig{
 		User:              endpoint.FinalUser(),
 		Auth:              authMethods,
-		HostKeyCallback:   kh.HostKeyCallback(),
+		HostKeyCallback:   hostKeyCallback,
 		HostKeyAlgorithms: kh.HostKeyAlgorithms(fmt.Sprintf("%s:%s", endpoint.FinalHost(), endpoint.FinalPort())),
 	}
 
