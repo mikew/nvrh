@@ -3,11 +3,14 @@ package context
 import (
 	"fmt"
 	"os/exec"
+
+	"nvrh/src/nvrh_base_ssh"
+	"nvrh/src/ssh_endpoint"
 )
 
 type NvrhContext struct {
 	SessionId       string
-	Server          string
+	Endpoint        *ssh_endpoint.SshEndpoint
 	RemoteDirectory string
 
 	LocalSocketPath  string
@@ -24,6 +27,8 @@ type NvrhContext struct {
 
 	SshPath string
 	Debug   bool
+
+	SshClient nvrh_base_ssh.BaseNvrhSshClient
 }
 
 func (nc *NvrhContext) LocalSocketOrPort() string {
@@ -31,7 +36,7 @@ func (nc *NvrhContext) LocalSocketOrPort() string {
 		// nvim-qt, at least on Windows (and might have something to do with
 		// running in a VM) seems to prefer `127.0.0.1` to `0.0.0.0`, and I think
 		// that's safe on other OSes.
-		return fmt.Sprintf("127.0.0.1:%d", nc.PortNumber)
+		return fmt.Sprintf("localhost:%d", nc.PortNumber)
 	}
 
 	return nc.LocalSocketPath
@@ -39,7 +44,7 @@ func (nc *NvrhContext) LocalSocketOrPort() string {
 
 func (nc *NvrhContext) RemoteSocketOrPort() string {
 	if nc.ShouldUsePorts {
-		return fmt.Sprintf("127.0.0.1:%d", nc.PortNumber)
+		return fmt.Sprintf("localhost:%d", nc.PortNumber)
 	}
 
 	return nc.RemoteSocketPath

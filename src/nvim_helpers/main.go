@@ -1,6 +1,8 @@
 package nvim_helpers
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/neovim/go-client/nvim"
@@ -26,4 +28,18 @@ func WaitForNvim(nvrhContext *context.NvrhContext) (*nvim.Nvim, error) {
 	}
 
 	// return nil, errors.New("Timed out waiting for nvim")
+}
+
+func BuildRemoteCommandString(nvrhContext *context.NvrhContext) string {
+	envPairsString := ""
+	if len(nvrhContext.RemoteEnv) > 0 {
+		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
+	}
+
+	return fmt.Sprintf(
+		"%s nvim --headless --listen \"%s\" --cmd \"cd %s\"",
+		envPairsString,
+		nvrhContext.RemoteSocketOrPort(),
+		nvrhContext.RemoteDirectory,
+	)
 }
