@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/url"
 	"os/user"
+	"runtime"
+	"strings"
 
 	"github.com/kevinburke/ssh_config"
 )
@@ -77,12 +79,18 @@ func ParseSshEndpoint(server string) (*SshEndpoint, error) {
 		return nil, err
 	}
 
+	fallbackUser := currentUser.Username
+	// If on Windows, get the user name without the domain portion.
+	if runtime.GOOS == "windows" {
+		fallbackUser = fallbackUser[strings.LastIndex(fallbackUser, `\`)+1:]
+	}
+
 	return &SshEndpoint{
 		Given: server,
 
 		GivenUser:     parsed.User.Username(),
 		SshConfigUser: ssh_config.Get(parsed.Hostname(), "User"),
-		FallbackUser:  currentUser.Username,
+		FallbackUser:  fallbackUser,
 
 		GivenHost:     parsed.Hostname(),
 		SshConfigHost: ssh_config.Get(parsed.Hostname(), "HostName"),
