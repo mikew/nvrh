@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/kevinburke/ssh_config"
 	"github.com/skeema/knownhosts"
@@ -194,7 +195,7 @@ func getSignersForIdentityAgent(hostname string) ([]ssh.Signer, error) {
 
 func askForPassword(message string) ([]byte, error) {
 	fmt.Print(message)
-	password, err := term.ReadPassword(0)
+	password, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 
 	if err != nil {
