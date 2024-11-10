@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/Microsoft/go-winio"
 	"github.com/kevinburke/ssh_config"
 	"github.com/skeema/knownhosts"
 	"golang.org/x/crypto/ssh"
@@ -182,23 +181,10 @@ func getSignersForIdentityAgent(hostname string) ([]ssh.Signer, error) {
 
 	sshAuthSock = CleanupSshConfigValue(sshAuthSock)
 
-	var conn net.Conn
-	if runtime.GOOS == "windows" {
-		//inner_conn, err := namedpipe.DialContext(context.Background(), sshAuthSock)
-		// inner_conn, err := npipe.Dial(sshAuthSock)
-		inner_conn, err := winio.DialPipe(sshAuthSock, nil)
-		if err != nil {
-			slog.Error("Failed to open SSH auth socket", "err", err)
-			return nil, err
-		}
-		conn = inner_conn
-	} else {
-		inner_conn, err := net.Dial("unix", sshAuthSock)
-		if err != nil {
-			slog.Error("Failed to open SSH auth socket", "err", err)
-			return nil, err
-		}
-		conn = inner_conn
+	conn, err := getConnectionForAgent(sshAuthSock)
+	if err != nil {
+		slog.Error("Failed to open SSH auth socket", "err", err)
+		return nil, err
 	}
 
 	slog.Info("Using ssh agent", "socket", sshAuthSock)
