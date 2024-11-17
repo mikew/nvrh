@@ -1,5 +1,5 @@
 {
   "name": "nvrh",
   "shortDescription": "A remote helper for neovim",
-  "version": "0.1.14"
+  "version": "0.1.15"
 }

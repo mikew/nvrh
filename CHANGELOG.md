@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.15 (2024-11-17)
+
+
+### Features
+
+* Golang ssh ([#25](https://github.com/mikew/nvrh/issues/25)) ([228f5a0](https://github.com/mikew/nvrh/commit/228f5a0f839a842f515929250e9fe6f7f4309a05)), closes [#24](https://github.com/mikew/nvrh/issues/24)
+
 ## 0.1.14 (2024-10-21)
 
 
