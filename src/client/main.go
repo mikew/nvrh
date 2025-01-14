@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -142,7 +143,9 @@ var CliClientOpenCommand = cli.Command{
 		if nvrhContext.ShouldUsePorts {
 			min := 1025
 			max := 65535
-			nvrhContext.PortNumber = rand.IntN(max-min) + min
+			randomPort := rand.IntN(max-min) + min
+			nvrhContext.LocalPortNumber = randomPort
+			nvrhContext.RemotePortNumber = randomPort
 		}
 
 		var nv *nvim.Nvim
@@ -163,8 +166,8 @@ var CliClientOpenCommand = cli.Command{
 
 			if nvrhContext.ShouldUsePorts {
 				tunnelInfo.Mode = "port"
-				tunnelInfo.LocalSocket = fmt.Sprintf("%d", nvrhContext.PortNumber)
-				tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.PortNumber)
+				tunnelInfo.LocalSocket = fmt.Sprintf("%d", nvrhContext.LocalPortNumber)
+				tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.RemotePortNumber)
 			}
 
 			nvimCommandString := nvim_helpers.BuildRemoteCommandString(nvrhContext)
@@ -215,15 +218,13 @@ var CliClientOpenCommand = cli.Command{
 			}
 		}()
 
-		nv = <-nvChan
-
 		go func() {
-			select {
-			case sig := <-signalChan:
-				slog.Debug("Received signal", "signal", sig)
-				doneChan <- fmt.Errorf("Received signal: %s", sig)
-			}
+			sig := <-signalChan
+			slog.Debug("Received signal", "signal", sig)
+			doneChan <- fmt.Errorf("received signal: %s", sig)
 		}()
+
+		nv = <-nvChan
 
 		err := <-doneChan
 
@@ -467,8 +468,8 @@ func prepareRemoteNvim(nvrhContext *context.NvrhContext, nv *nvim.Nvim) error {
 	nv.RegisterHandler("tunnel-port", func(v *nvim.Nvim, args []string) {
 		go nvrhContext.SshClient.TunnelSocket(&ssh_tunnel_info.SshTunnelInfo{
 			Mode:         "port",
-			LocalSocket:  fmt.Sprintf("%s", args[0]),
-			RemoteSocket: fmt.Sprintf("%s", args[0]),
+			LocalSocket:  args[0],
+			RemoteSocket: args[0],
 			Public:       true,
 		})
 	})
@@ -476,6 +477,8 @@ func prepareRemoteNvim(nvrhContext *context.NvrhContext, nv *nvim.Nvim) error {
 
 	batch := nv.NewBatch()
 
+	// Set $NVRH_SESSION_ID so we can identify the session.
+	batch.Command(fmt.Sprintf(`let $NVRH_SESSION_ID="%s"`, nvrhContext.SessionId))
 	// Let nvim know the channel id so it can send us messages.
 	batch.Command(fmt.Sprintf(`let $NVRH_CHANNEL_ID="%d"`, nv.ChannelID()))
 	// Set $BROWSER so the remote machine can open a browser locally.
