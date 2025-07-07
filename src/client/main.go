@@ -221,7 +221,7 @@ var CliClientOpenCommand = cli.Command{
 		go func() {
 			sig := <-signalChan
 			slog.Debug("Received signal", "signal", sig)
-			doneChan <- fmt.Errorf("received signal: %s", sig)
+			doneChan <- fmt.Errorf("Received signal: %s", sig)
 		}()
 
 		nv = <-nvChan
