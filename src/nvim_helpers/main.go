@@ -37,9 +37,8 @@ func BuildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 	}
 
 	return fmt.Sprintf(
-		"%s nvim --headless --listen \"%s\" --cmd \"cd %s\"",
+		"%s nvim --headless --listen \"%s\"",
 		envPairsString,
 		nvrhContext.RemoteSocketOrPort(),
-		nvrhContext.RemoteDirectory,
 	)
 }
