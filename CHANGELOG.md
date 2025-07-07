@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.16 (2025-07-07)
+
+
+### Features
+
+* Client reconnect ([#29](https://github.com/mikew/nvrh/issues/29)) ([9fc105d](https://github.com/mikew/nvrh/commit/9fc105d95308b8a69b8c96ec785c2a7401281207)), closes [#28](https://github.com/mikew/nvrh/issues/28)
+
 ## 0.1.15 (2024-11-17)
 
 
