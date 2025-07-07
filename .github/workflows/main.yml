@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - ubuntu-20.04
+          - ubuntu-22.04
 
     runs-on: ${{ matrix.platform }}
 
@@ -47,7 +47,7 @@ jobs:
     needs:
       - build
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
       # path.
       - run: |
           mkdir -p dist
-          cp -rl wadpunk-ubuntu-20.04-X64/* dist
+          cp -rl wadpunk-ubuntu-22.04-X64/* dist
         shell: bash
         if: endsWith(github.ref, '/main')
 
