@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.17 (2025-07-07)
+
+
+### Features
+
+* Move `cd`-ing to shell phase not vim phase ([#30](https://github.com/mikew/nvrh/issues/30)) ([0efff1b](https://github.com/mikew/nvrh/commit/0efff1ba260657c4f930a58f9802ddd376df2f2a))
+
 ## 0.1.16 (2025-07-07)
 
 
