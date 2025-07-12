@@ -78,9 +78,10 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:  "local-editor",
-			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			Value: cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
+			Name:    "local-editor",
+			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
+			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
+			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
 	},
 
@@ -276,9 +277,10 @@ var CliClientReconnectCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:  "local-editor",
-			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			Value: cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
+			Name:    "local-editor",
+			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
+			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
+			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
 	},
 
