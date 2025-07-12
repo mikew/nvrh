@@ -172,7 +172,7 @@ var CliClientOpenCommand = cli.Command{
 			}
 
 			nvimCommandString := nvim_helpers.BuildRemoteCommandString(nvrhContext)
-			nvimCommandString = fmt.Sprintf("$SHELL -i -c 'cd \"%s\" && %s'", nvrhContext.RemoteDirectory, nvimCommandString)
+			nvimCommandString = fmt.Sprintf("exec $SHELL -i -c 'cd \"%s\" && %s'", nvrhContext.RemoteDirectory, nvimCommandString)
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
 
 			nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
