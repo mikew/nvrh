@@ -30,6 +30,8 @@ type NvrhContext struct {
 	Debug   bool
 
 	SshClient nvrh_base_ssh.BaseNvrhSshClient
+
+	TunneledPorts map[string]bool
 }
 
 func (nc *NvrhContext) LocalSocketOrPort() string {
