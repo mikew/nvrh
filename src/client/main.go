@@ -497,7 +497,7 @@ vim.api.nvim_create_user_command(
 	}
 )
 return true
-	`, nil, nil)
+	`, nil)
 
 	// Add command to open url.
 	batch.ExecLua(`
@@ -511,7 +511,7 @@ vim.api.nvim_create_user_command(
 		force = true,
 	}
 )
-	`, nil, nil)
+	`, nil)
 
 	// Prepare the browser script.
 	batch.ExecLua(`
@@ -532,6 +532,18 @@ os.execute('chmod +x ' .. browser_script_path)
 
 return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
+
+	batch.ExecLua(`
+local original_open = vim.ui.open
+vim.ui.open = function(uri, opts)
+  if type(uri) == 'string' and uri:match('^https?://') then
+    vim.rpcnotify(tonumber(os.getenv('NVRH_CHANNEL_ID')), 'open-url', { uri })
+    return nil, nil
+  else
+    return original_open(uri, opts)
+  end
+end
+	`, nil)
 
 	if err := batch.Execute(); err != nil {
 		return err
