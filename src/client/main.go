@@ -73,8 +73,9 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:  "server-env",
-			Usage: "Environment variables to set on the remote server",
+			Name:    "server-env",
+			Usage:   "Environment variables to set on the remote server",
+			EnvVars: []string{"NVRH_CLIENT_SERVER_ENV"},
 		},
 
 		&cli.StringSliceFlag{
