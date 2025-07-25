@@ -605,7 +605,7 @@ vim.api.nvim_create_autocmd("TermOpen", {
 })
 
 return true
-	`, nil, nil)
+	`, nil)
 
 	if err := batch.Execute(); err != nil {
 		return err
