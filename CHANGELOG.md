@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.19 (2025-07-25)
+
+
+### Features
+
+* More env vars ([#32](https://github.com/mikew/nvrh/issues/32)) ([156d57e](https://github.com/mikew/nvrh/commit/156d57ed574194f46596c90c353bde775703b274))
+
 ## 0.1.18 (2025-07-25)
 
 
