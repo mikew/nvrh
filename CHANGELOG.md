@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.18 (2025-07-25)
+
+
+### Features
+
+* Override vim.ui.open for http urls ([#35](https://github.com/mikew/nvrh/issues/35)) ([5649887](https://github.com/mikew/nvrh/commit/5649887a9711617ffbc1ca2584e2bbd70b803891)), closes [#34](https://github.com/mikew/nvrh/issues/34)
+
 ## 0.1.17 (2025-07-07)
 
 
