@@ -537,7 +537,7 @@ return true
 local original_open = vim.ui.open
 vim.ui.open = function(uri, opts)
   if type(uri) == 'string' and uri:match('^https?://') then
-    vim.fn.jobstart({ os.getenv('BROWSER'), uri }, { detach = true })
+    vim.rpcnotify(tonumber(os.getenv('NVRH_CHANNEL_ID')), 'open-url', { uri })
   else
     return original_open(uri, opts)
   end
