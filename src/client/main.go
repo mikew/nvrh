@@ -73,14 +73,16 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:  "server-env",
-			Usage: "Environment variables to set on the remote server",
+			Name:    "server-env",
+			Usage:   "Environment variables to set on the remote server",
+			EnvVars: []string{"NVRH_CLIENT_SERVER_ENV"},
 		},
 
 		&cli.StringSliceFlag{
-			Name:  "local-editor",
-			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			Value: cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
+			Name:    "local-editor",
+			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
+			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
+			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
 	},
 
@@ -173,7 +175,7 @@ var CliClientOpenCommand = cli.Command{
 			}
 
 			nvimCommandString := nvim_helpers.BuildRemoteCommandString(nvrhContext)
-			nvimCommandString = fmt.Sprintf("$SHELL -i -c 'cd \"%s\" && %s'", nvrhContext.RemoteDirectory, nvimCommandString)
+			nvimCommandString = fmt.Sprintf("exec $SHELL -i -c 'cd \"%s\" && %s'", nvrhContext.RemoteDirectory, nvimCommandString)
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
 
 			nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
@@ -278,9 +280,10 @@ var CliClientReconnectCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:  "local-editor",
-			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			Value: cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
+			Name:    "local-editor",
+			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
+			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
+			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
 	},
 
@@ -505,7 +508,7 @@ vim.api.nvim_create_user_command(
 	}
 )
 return true
-	`, nil, nil)
+	`, nil)
 
 	// Add command to open url.
 	batch.ExecLua(`
@@ -519,7 +522,7 @@ vim.api.nvim_create_user_command(
 		force = true,
 	}
 )
-	`, nil, nil)
+	`, nil)
 
 	// Prepare the browser script.
 	batch.ExecLua(`
@@ -605,6 +608,18 @@ vim.api.nvim_create_autocmd("TermOpen", {
 })
 
 return true
+	`, nil)
+
+	batch.ExecLua(`
+local original_open = vim.ui.open
+vim.ui.open = function(uri, opts)
+  if type(uri) == 'string' and uri:match('^https?://') then
+    vim.rpcnotify(tonumber(os.getenv('NVRH_CHANNEL_ID')), 'open-url', { uri })
+    return nil, nil
+  else
+    return original_open(uri, opts)
+  end
+end
 	`, nil)
 
 	if err := batch.Execute(); err != nil {
