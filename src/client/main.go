@@ -590,11 +590,11 @@ function nvrh_port_scanner.attach_port_watcher(bufnr)
     end
   end
 
-  local detach = vim.api.nvim_buf_attach(bufnr, false, {
+  vim.api.nvim_buf_attach(bufnr, false, {
     on_lines = on_lines,
   })
 
-  nvrh_port_scanner.active_watchers[bufnr] = detach
+  nvrh_port_scanner.active_watchers[bufnr] = true
 end
 
 -- Attach watcher on TermOpen
