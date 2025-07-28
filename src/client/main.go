@@ -507,7 +507,6 @@ vim.api.nvim_create_user_command(
 		force = true,
 	}
 )
-return true
 	`, nil)
 
 	// Add command to open url.
@@ -540,8 +539,6 @@ script_contents = string.format(script_contents, socket_path, channel_id)
 
 vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
-
-return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
 	batch.ExecLua(`
@@ -606,8 +603,6 @@ vim.api.nvim_create_autocmd("TermOpen", {
     nvrh_port_scanner.attach_port_watcher(args.buf)
   end,
 })
-
-return true
 	`, nil)
 
 	batch.ExecLua(`
