@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -ex
+
+if command -v lsof; then
+  lsof -i ":$1"
+elif command -v netstat; then
+  netstat -an | grep LISTEN | grep ":$1"
+else
+  true
+fi

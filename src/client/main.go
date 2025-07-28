@@ -558,6 +558,8 @@ local nvrh_port_scanner = {
     "^:(%d+)",
     -- ":3000" but avoid eslint errors (error in foo.tsx:3)
     "%s+:(%d+)",
+    -- http://some.domain.com:3000 / https://some.domain.com:3000
+    "https?://[^/]+:(%d+)",
   },
 }
 
