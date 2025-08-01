@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.20 (2025-08-01)
+
+
+### Features
+
+* Automatically map ports via scanning ([#31](https://github.com/mikew/nvrh/issues/31)) ([fe605f9](https://github.com/mikew/nvrh/commit/fe605f948978a67bae8b0bb78f6d2e1011f1e247)), closes [#10](https://github.com/mikew/nvrh/issues/10)
+
 ## 0.1.19 (2025-07-25)
 
 
