@@ -124,6 +124,8 @@ var CliClientOpenCommand = cli.Command{
 
 			SshPath: sshPath,
 			Debug:   isDebug,
+
+			TunneledPorts: make(map[string]bool),
 		}
 
 		if nvrhContext.SshPath == "internal" {
@@ -469,6 +471,12 @@ func BuildClientNvimCmd(nvrhContext *context.NvrhContext) *exec.Cmd {
 
 func prepareRemoteNvim(nvrhContext *context.NvrhContext, nv *nvim.Nvim) error {
 	nv.RegisterHandler("tunnel-port", func(v *nvim.Nvim, args []string) {
+		if _, ok := nvrhContext.TunneledPorts[args[0]]; ok {
+			return
+		}
+
+		nvrhContext.TunneledPorts[args[0]] = true
+
 		go nvrhContext.SshClient.TunnelSocket(&ssh_tunnel_info.SshTunnelInfo{
 			Mode:         "port",
 			LocalSocket:  args[0],
@@ -499,7 +507,6 @@ vim.api.nvim_create_user_command(
 		force = true,
 	}
 )
-return true
 	`, nil)
 
 	// Add command to open url.
@@ -532,9 +539,73 @@ script_contents = string.format(script_contents, socket_path, channel_id)
 
 vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
-
-return true
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
+
+	batch.ExecLua(`
+local nvrh_port_scanner = {
+  active_watchers = {},
+
+  mapped_ports = {},
+
+  patterns = {
+    -- "port 3000"
+    "port%s+(%d+)",
+    -- "localhost:3000"
+    "localhost:(%d+)",
+    -- "0.0.0.0:3000"
+    "%d+%.%d+%.%d+%.%d+:(%d+)",
+    -- ":3000" at start of line
+    "^:(%d+)",
+    -- ":3000" but avoid eslint errors (error in foo.tsx:3)
+    "%s+:(%d+)",
+    -- http://some.domain.com:3000 / https://some.domain.com:3000
+    "https?://[^/]+:(%d+)",
+  },
+}
+
+function nvrh_port_scanner.attach_port_watcher(bufnr)
+  if vim.bo[bufnr].buftype ~= "terminal" then
+    return
+  end
+
+  -- Already watching?
+  if nvrh_port_scanner.active_watchers[bufnr] then
+    return
+  end
+
+  local function on_lines(_, _, _, lastline, new_lastline, _)
+    local lines = vim.api.nvim_buf_get_lines(bufnr, lastline, new_lastline, false)
+
+    for _, line in ipairs(lines) do
+      for _, pattern in ipairs(nvrh_port_scanner.patterns) do
+        local port = string.match(line, pattern)
+        if port then
+          if nvrh_port_scanner.mapped_ports[port] then
+            -- Already notified about this port
+          else
+						nvrh_port_scanner.mapped_ports[port] = true
+            vim.rpcnotify(tonumber(os.getenv("NVRH_CHANNEL_ID")), "tunnel-port", { port })
+          end
+          break
+        end
+      end
+    end
+  end
+
+  vim.api.nvim_buf_attach(bufnr, false, {
+    on_lines = on_lines,
+  })
+
+  nvrh_port_scanner.active_watchers[bufnr] = true
+end
+
+-- Attach watcher on TermOpen
+vim.api.nvim_create_autocmd("TermOpen", {
+  callback = function(args)
+    nvrh_port_scanner.attach_port_watcher(args.buf)
+  end,
+})
+	`, nil)
 
 	batch.ExecLua(`
 local original_open = vim.ui.open
