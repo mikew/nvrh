@@ -91,6 +91,12 @@ var CliClientOpenCommand = cli.Command{
 			EnvVars: []string{"NVRH_CLIENT_NVIM_CMD"},
 			Value:   cli.NewStringSlice("nvim"),
 		},
+
+		&cli.StringSliceFlag{
+			Name:    "ssh-arg",
+			Usage:   "Additional arguments to pass to the SSH command",
+			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
+		},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -135,6 +141,8 @@ var CliClientOpenCommand = cli.Command{
 			TunneledPorts: make(map[string]bool),
 
 			NvimCmd: c.StringSlice("nvim-cmd"),
+
+			SshArgs: c.StringSlice("ssh-arg"),
 		}
 
 		if nvrhContext.SshPath == "internal" {

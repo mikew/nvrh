@@ -24,7 +24,11 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 		args = append(args, "-L", tunnelInfo.BoundToIp())
 	}
 
-	args = append(args, "-t", c.Ctx.Endpoint.Given, command)
+	if c.Ctx.SshArgs != nil && len(c.Ctx.SshArgs) > 0 {
+		args = append(args, c.Ctx.SshArgs...)
+	}
+
+	args = append(args, "-t", c.Ctx.Endpoint.Given, "--", command)
 
 	slog.Debug("Running command via SSH", "command", command)
 
