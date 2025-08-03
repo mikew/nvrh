@@ -38,11 +38,13 @@ CATEGORY:
    client
 
 OPTIONS:
-   --ssh-path value                               Path to SSH binary. Defaults to ssh on Unix, C:\Windows\System32\OpenSSH\ssh.exe on Windows (default: "ssh") [$NVRH_CLIENT_SSH_PATH]
+   --ssh-path value                               Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary (default: "binary") [$NVRH_CLIENT_SSH_PATH]
    --use-ports                                    Use ports instead of sockets. Defaults to true on Windows (default: false) [$NVRH_CLIENT_USE_PORTS]
    --debug                                        (default: false) [$NVRH_CLIENT_DEBUG]
-   --server-env value [ --server-env value ]      Environment variables to set on the remote server
-   --local-editor value [ --local-editor value ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path (default: "nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui")
+   --server-env value [ --server-env value ]      Environment variables to set on the remote server [$NVRH_CLIENT_SERVER_ENV]
+   --local-editor value [ --local-editor value ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path (default: "nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui") [$NVRH_CLIENT_LOCAL_EDITOR]
+   --nvim-cmd nvim [ --nvim-cmd nvim ]            Command to run nvim with. Defaults to nvim (default: "nvim") [$NVRH_CLIENT_NVIM_CMD]
+   --ssh-arg value [ --ssh-arg value ]            Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]
    --help, -h                                     show help
 ```
 
@@ -54,6 +56,29 @@ nvrh client open \
   --local-editor --nofork \
   --local-editor --server \
   --local-editor {{SOCKET_PATH}}
+```
+
+### `nvrh client reconnect`
+
+Reconnect to an existing nvrh session.
+
+```
+NAME:
+   nvrh client reconnect - Reconnect to an existing remote nvim instance
+
+USAGE:
+   nvrh client reconnect [command options] <server> <session-id>
+
+CATEGORY:
+   client
+
+OPTIONS:
+   --ssh-path value                               Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary (default: "binary") [$NVRH_CLIENT_SSH_PATH]
+   --use-ports                                    Use ports instead of sockets. Defaults to true on Windows (default: false) [$NVRH_CLIENT_USE_PORTS]
+   --debug                                        (default: false) [$NVRH_CLIENT_DEBUG]
+   --local-editor value [ --local-editor value ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path (default: "nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui") [$NVRH_CLIENT_LOCAL_EDITOR]
+   --ssh-arg value [ --ssh-arg value ]            Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]
+   --help, -h                                     show help
 ```
 
 ### `:NvrhTunnelPort`
