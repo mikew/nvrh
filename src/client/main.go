@@ -302,6 +302,12 @@ var CliClientReconnectCommand = cli.Command{
 			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
 			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
+
+		&cli.StringSliceFlag{
+			Name:    "ssh-arg",
+			Usage:   "Additional arguments to pass to the SSH command",
+			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
+		},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -341,6 +347,7 @@ var CliClientReconnectCommand = cli.Command{
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 			SshPath:           sshPath,
 			Debug:             isDebug,
+			SshArgs:           c.StringSlice("ssh-arg"),
 		}
 
 		portNumberString := c.Args().Get(2)
