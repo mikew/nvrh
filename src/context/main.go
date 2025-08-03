@@ -26,10 +26,13 @@ type NvrhContext struct {
 
 	CommandsToKill []*exec.Cmd
 
-	SshPath string
-	Debug   bool
+	Debug bool
 
+	SshPath   string
 	SshClient nvrh_base_ssh.BaseNvrhSshClient
+	SshArgs   []string
+
+	NvimCmd []string
 
 	TunneledPorts map[string]bool
 }

@@ -84,6 +84,13 @@ var CliClientOpenCommand = cli.Command{
 			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
 			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
+
+		&cli.StringSliceFlag{
+			Name:    "nvim-cmd",
+			Usage:   "Command to run nvim with. Defaults to `nvim`",
+			EnvVars: []string{"NVRH_CLIENT_NVIM_CMD"},
+			Value:   cli.NewStringSlice("nvim"),
+		},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -126,6 +133,8 @@ var CliClientOpenCommand = cli.Command{
 			Debug:   isDebug,
 
 			TunneledPorts: make(map[string]bool),
+
+			NvimCmd: c.StringSlice("nvim-cmd"),
 		}
 
 		if nvrhContext.SshPath == "internal" {
