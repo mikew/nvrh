@@ -45,6 +45,7 @@ OPTIONS:
    --local-editor value [ --local-editor value ]  Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path (default: "nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui") [$NVRH_CLIENT_LOCAL_EDITOR]
    --nvim-cmd nvim [ --nvim-cmd nvim ]            Command to run nvim with. Defaults to nvim (default: "nvim") [$NVRH_CLIENT_NVIM_CMD]
    --ssh-arg value [ --ssh-arg value ]            Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]
+   --enable-automap-ports                         Enable automatic port mapping (default: true) [$NVRH_CLIENT_AUTOMAP_PORTS]
    --help, -h                                     show help
 ```
 

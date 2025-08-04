@@ -18,6 +18,7 @@ type NvrhContext struct {
 	ShouldUsePorts   bool
 	LocalPortNumber  int
 	RemotePortNumber int
+	AutomapPorts     bool
 
 	RemoteEnv   []string
 	LocalEditor []string

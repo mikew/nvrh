@@ -97,6 +97,13 @@ var CliClientOpenCommand = cli.Command{
 			Usage:   "Additional arguments to pass to the SSH command",
 			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
 		},
+
+		&cli.BoolFlag{
+			Name:    "enable-automap-ports",
+			Usage:   "Enable automatic port mapping",
+			EnvVars: []string{"NVRH_CLIENT_AUTOMAP_PORTS"},
+			Value:   true,
+		},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -132,6 +139,7 @@ var CliClientOpenCommand = cli.Command{
 
 			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
 			LocalSocketPath:  filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
+			AutomapPorts:     c.Bool("enable-automap-ports"),
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
@@ -565,7 +573,8 @@ vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
-	batch.ExecLua(`
+	if nvrhContext.AutomapPorts {
+		batch.ExecLua(`
 local nvrh_port_scanner = {
   active_watchers = {},
 
@@ -629,7 +638,8 @@ vim.api.nvim_create_autocmd("TermOpen", {
     nvrh_port_scanner.attach_port_watcher(args.buf)
   end,
 })
-	`, nil)
+		`, nil)
+	}
 
 	batch.ExecLua(`
 local original_open = vim.ui.open
