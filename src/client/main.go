@@ -84,6 +84,26 @@ var CliClientOpenCommand = cli.Command{
 			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
 			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
+
+		&cli.StringSliceFlag{
+			Name:    "nvim-cmd",
+			Usage:   "Command to run nvim with. Defaults to `nvim`",
+			EnvVars: []string{"NVRH_CLIENT_NVIM_CMD"},
+			Value:   cli.NewStringSlice("nvim"),
+		},
+
+		&cli.StringSliceFlag{
+			Name:    "ssh-arg",
+			Usage:   "Additional arguments to pass to the SSH command",
+			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
+		},
+
+		&cli.BoolFlag{
+			Name:    "enable-automap-ports",
+			Usage:   "Enable automatic port mapping",
+			EnvVars: []string{"NVRH_CLIENT_AUTOMAP_PORTS"},
+			Value:   true,
+		},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -119,6 +139,7 @@ var CliClientOpenCommand = cli.Command{
 
 			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
 			LocalSocketPath:  filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId)),
+			AutomapPorts:     c.Bool("enable-automap-ports"),
 
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 
@@ -126,6 +147,10 @@ var CliClientOpenCommand = cli.Command{
 			Debug:   isDebug,
 
 			TunneledPorts: make(map[string]bool),
+
+			NvimCmd: c.StringSlice("nvim-cmd"),
+
+			SshArgs: c.StringSlice("ssh-arg"),
 		}
 
 		if nvrhContext.SshPath == "internal" {
@@ -285,6 +310,12 @@ var CliClientReconnectCommand = cli.Command{
 			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
 			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
 		},
+
+		&cli.StringSliceFlag{
+			Name:    "ssh-arg",
+			Usage:   "Additional arguments to pass to the SSH command",
+			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
+		},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -324,6 +355,7 @@ var CliClientReconnectCommand = cli.Command{
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
 			SshPath:           sshPath,
 			Debug:             isDebug,
+			SshArgs:           c.StringSlice("ssh-arg"),
 		}
 
 		portNumberString := c.Args().Get(2)
@@ -541,7 +573,8 @@ vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
 	`, nil, nvrhContext.BrowserScriptPath, nvrhContext.RemoteSocketOrPort(), nv.ChannelID())
 
-	batch.ExecLua(`
+	if nvrhContext.AutomapPorts {
+		batch.ExecLua(`
 local nvrh_port_scanner = {
   active_watchers = {},
 
@@ -605,7 +638,8 @@ vim.api.nvim_create_autocmd("TermOpen", {
     nvrh_port_scanner.attach_port_watcher(args.buf)
   end,
 })
-	`, nil)
+		`, nil)
+	}
 
 	batch.ExecLua(`
 local original_open = vim.ui.open

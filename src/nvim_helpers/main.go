@@ -36,9 +36,12 @@ func BuildRemoteCommandString(nvrhContext *context.NvrhContext) string {
 		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
 	}
 
+	nvimCmd := strings.Join(nvrhContext.NvimCmd, " ")
+
 	return fmt.Sprintf(
-		"%s nvim --headless --listen \"%s\"",
+		"%s %s --headless --listen \"%s\"",
 		envPairsString,
+		nvimCmd,
 		nvrhContext.RemoteSocketOrPort(),
 	)
 }
