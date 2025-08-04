@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.21 (2025-08-04)
+
+
+### Features
+
+* `--nvim-cmd`, `--enable-automap-ports`, and `--ssh-arg` ([#37](https://github.com/mikew/nvrh/issues/37)) ([ea961c3](https://github.com/mikew/nvrh/commit/ea961c34e128f6471a018aaca1f77a5740ebb022)), closes [#36](https://github.com/mikew/nvrh/issues/36)
+
 ## 0.1.20 (2025-08-01)
 
 
