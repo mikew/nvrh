@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -ex
+
+WORKING_HOST="$1"
+INVALID_HOST="$2"
+
+fresh-nvrh() {
+  NVRH_CLIEND_DEBUG=true \
+  NVRH_CLIENT_SSH_ARG= \
+  NVRH_CLIENT_SERVER_ENV= \
+  NVRH_CLIENT_NVIM_CMD= \
+  NVRH_CLIENT_SSH_PATH= \
+  ./dist/nvrh-darwin-amd64 "$@"
+}
+
+./script/build
+
+# Connect once to ensure agent is doing its thing.
+ssh "$WORKING_HOST" -- true
+
+# Test 1
+fresh-nvrh client open "$WORKING_HOST" &
+NVRH_PID=$!
+
+sleep 5
+
+kill -9 $NVRH_PID || true
+
+ssh "$WORKING_HOST" -- "ps aux | grep nvim | grep -v grep" || true
