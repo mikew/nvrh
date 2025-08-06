@@ -74,7 +74,7 @@ func (c *NvrhBinarySshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnel
 		return
 	}
 
-	defer sshCommand.Process.Kill()
+	defer exec_helpers.Kill(sshCommand)
 
 	if err := sshCommand.Wait(); err != nil {
 		return
