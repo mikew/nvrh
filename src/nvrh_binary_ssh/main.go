@@ -26,7 +26,7 @@ func (c *NvrhBinarySshClient) Run(ctx context.Context, command string, tunnelInf
 		args = append(args, "-L", tunnelInfo.BoundToIp())
 	}
 
-	if c.Ctx.SshArgs != nil && len(c.Ctx.SshArgs) > 0 {
+	if len(c.Ctx.SshArgs) > 0 {
 		args = append(args, c.Ctx.SshArgs...)
 	}
 

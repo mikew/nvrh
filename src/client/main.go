@@ -662,13 +662,14 @@ func RpcHandleOpenUrl(v *nvim.Nvim, args []string) {
 
 	slog.Info("Opening url", "url", url)
 
-	if goos == "darwin" {
+	switch goos {
+	case "darwin":
 		exec.Command("open", url).Run()
-	} else if goos == "linux" {
+	case "linux":
 		exec.Command("xdg-open", url).Run()
-	} else if goos == "windows" {
+	case "windows":
 		exec.Command("cmd", "/c", "start", url).Run()
-	} else {
+	default:
 		slog.Error("Don't know how to open url", "url", url)
 	}
 }
