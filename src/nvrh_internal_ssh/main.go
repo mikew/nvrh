@@ -1,6 +1,7 @@
 package nvrh_internal_ssh
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,12 +10,12 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"nvrh/src/context"
+	nvrh_context "nvrh/src/context"
 	"nvrh/src/ssh_tunnel_info"
 )
 
 type NvrhInternalSshClient struct {
-	Ctx       *context.NvrhContext
+	Ctx       *nvrh_context.NvrhContext
 	SshClient *ssh.Client
 }
 
@@ -26,7 +27,7 @@ func (c *NvrhInternalSshClient) Close() error {
 	return c.SshClient.Close()
 }
 
-func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
+func (c *NvrhInternalSshClient) Run(ctx context.Context, command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
 	if c.SshClient == nil {
 		return fmt.Errorf("ssh client not initialized")
 	}
@@ -34,7 +35,7 @@ func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.
 	slog.Debug("Running command via SSH", "command", command)
 
 	if tunnelInfo != nil {
-		go c.TunnelSocket(tunnelInfo)
+		go c.TunnelSocket(ctx, tunnelInfo)
 	}
 
 	session, err := c.SshClient.NewSession()
@@ -57,7 +58,7 @@ func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.
 	return nil
 }
 
-func (c *NvrhInternalSshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
+func (c *NvrhInternalSshClient) TunnelSocket(ctx context.Context, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
 	if c.SshClient == nil {
 		return
 	}

@@ -1,23 +1,25 @@
 package nvrh_binary_ssh
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"os/exec"
 
-	"nvrh/src/context"
+	nvrh_context "nvrh/src/context"
+	"nvrh/src/exec_helpers"
 	"nvrh/src/ssh_tunnel_info"
 )
 
 type NvrhBinarySshClient struct {
-	Ctx *context.NvrhContext
+	Ctx *nvrh_context.NvrhContext
 }
 
 func (c *NvrhBinarySshClient) Close() error {
 	return nil
 }
 
-func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
+func (c *NvrhBinarySshClient) Run(ctx context.Context, command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
 	args := []string{}
 
 	if tunnelInfo != nil {
@@ -32,7 +34,8 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 
 	slog.Debug("Running command via SSH", "command", command)
 
-	sshCommand := exec.Command(
+	sshCommand := exec.CommandContext(
+		ctx,
 		c.Ctx.SshPath,
 		args...,
 	)
@@ -54,8 +57,9 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 	return nil
 }
 
-func (c *NvrhBinarySshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
-	sshCommand := exec.Command(
+func (c *NvrhBinarySshClient) TunnelSocket(ctx context.Context, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
+	sshCommand := exec.CommandContext(
+		ctx,
 		c.Ctx.SshPath,
 		"-NL",
 		tunnelInfo.BoundToIp(),
