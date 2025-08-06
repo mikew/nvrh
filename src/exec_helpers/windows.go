@@ -12,3 +12,14 @@ func PrepareForForking(cmd *exec.Cmd) {
 	// 	Setpgid: true,
 	// }
 }
+
+func Kill(cmd *exec.Cmd) {
+	if cmd.Process == nil {
+		return
+	}
+
+	// On Windows, we can use the Process.Kill method directly.
+	if err := cmd.Process.Kill(); err != nil {
+		// Handle error if needed
+	}
+}
