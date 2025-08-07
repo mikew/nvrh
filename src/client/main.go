@@ -222,8 +222,10 @@ var CliClientOpenCommand = cli.Command{
 			)
 
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
-			nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
-			slog.Warn("Main ssh command done")
+			done <- nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
+			// TODO Not sure why this is needed here, but not in the client command
+			// wait.
+			stop()
 		}()
 
 		// Wait for remote nvim
@@ -677,7 +679,7 @@ func RpcHandleOpenUrl(v *nvim.Nvim, args []string) {
 
 func killAllCmds(cmds []*exec.Cmd) {
 	for _, cmd := range cmds {
-		slog.Debug("Killing command", "cmd", cmd.Args)
+		slog.Debug("Killing command", "cmd", cmd.Args, "pid", cmd.Process.Pid)
 		exec_helpers.Kill(cmd)
 	}
 }
