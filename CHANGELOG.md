@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.22 (2025-08-07)
+
+
+### Features
+
+* Proper context / ctrl-c / timeout ([#39](https://github.com/mikew/nvrh/issues/39)) ([efcb7fd](https://github.com/mikew/nvrh/commit/efcb7fd19c866f1d099f711cb514d8c8124aded5)), closes [#38](https://github.com/mikew/nvrh/issues/38)
+
 ## 0.1.21 (2025-08-04)
 
 
