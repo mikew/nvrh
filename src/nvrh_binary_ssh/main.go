@@ -5,12 +5,12 @@ import (
 	"os"
 	"os/exec"
 
-	nvrh_context "nvrh/src/context"
+	"nvrh/src/context"
 	"nvrh/src/ssh_tunnel_info"
 )
 
 type NvrhBinarySshClient struct {
-	Ctx *nvrh_context.NvrhContext
+	Ctx *context.NvrhContext
 }
 
 func (c *NvrhBinarySshClient) Close() error {

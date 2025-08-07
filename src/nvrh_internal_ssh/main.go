@@ -9,12 +9,12 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	nvrh_context "nvrh/src/context"
+	"nvrh/src/context"
 	"nvrh/src/ssh_tunnel_info"
 )
 
 type NvrhInternalSshClient struct {
-	Ctx       *nvrh_context.NvrhContext
+	Ctx       *context.NvrhContext
 	SshClient *ssh.Client
 }
 
