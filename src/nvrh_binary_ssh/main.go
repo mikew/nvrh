@@ -1,13 +1,11 @@
 package nvrh_binary_ssh
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"os/exec"
 
 	nvrh_context "nvrh/src/context"
-	"nvrh/src/exec_helpers"
 	"nvrh/src/ssh_tunnel_info"
 )
 
@@ -19,7 +17,7 @@ func (c *NvrhBinarySshClient) Close() error {
 	return nil
 }
 
-func (c *NvrhBinarySshClient) Run(ctx context.Context, command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
+func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
 	args := []string{}
 
 	if tunnelInfo != nil {
@@ -34,8 +32,7 @@ func (c *NvrhBinarySshClient) Run(ctx context.Context, command string, tunnelInf
 
 	slog.Debug("Running command via SSH", "command", command)
 
-	sshCommand := exec.CommandContext(
-		ctx,
+	sshCommand := exec.Command(
 		c.Ctx.SshPath,
 		args...,
 	)
@@ -57,9 +54,8 @@ func (c *NvrhBinarySshClient) Run(ctx context.Context, command string, tunnelInf
 	return nil
 }
 
-func (c *NvrhBinarySshClient) TunnelSocket(ctx context.Context, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
-	sshCommand := exec.CommandContext(
-		ctx,
+func (c *NvrhBinarySshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
+	sshCommand := exec.Command(
 		c.Ctx.SshPath,
 		"-NL",
 		tunnelInfo.BoundToIp(),
@@ -77,8 +73,6 @@ func (c *NvrhBinarySshClient) TunnelSocket(ctx context.Context, tunnelInfo *ssh_
 	if err := sshCommand.Start(); err != nil {
 		return
 	}
-
-	defer exec_helpers.Kill(sshCommand)
 
 	if err := sshCommand.Wait(); err != nil {
 		return

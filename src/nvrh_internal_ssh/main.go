@@ -1,7 +1,6 @@
 package nvrh_internal_ssh
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -27,7 +26,7 @@ func (c *NvrhInternalSshClient) Close() error {
 	return c.SshClient.Close()
 }
 
-func (c *NvrhInternalSshClient) Run(ctx context.Context, command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
+func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
 	if c.SshClient == nil {
 		return fmt.Errorf("ssh client not initialized")
 	}
@@ -35,7 +34,7 @@ func (c *NvrhInternalSshClient) Run(ctx context.Context, command string, tunnelI
 	slog.Debug("Running command via SSH", "command", command)
 
 	if tunnelInfo != nil {
-		go c.TunnelSocket(ctx, tunnelInfo)
+		go c.TunnelSocket(tunnelInfo)
 	}
 
 	session, err := c.SshClient.NewSession()
@@ -58,7 +57,7 @@ func (c *NvrhInternalSshClient) Run(ctx context.Context, command string, tunnelI
 	return nil
 }
 
-func (c *NvrhInternalSshClient) TunnelSocket(ctx context.Context, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
+func (c *NvrhInternalSshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
 	if c.SshClient == nil {
 		return
 	}

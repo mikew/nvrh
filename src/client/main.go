@@ -194,8 +194,8 @@ var CliClientOpenCommand = cli.Command{
 			killAllCmds(nvrhContext.CommandsToKill)
 			os.Remove(nvrhContext.LocalSocketPath)
 			if nvrhContext.SshClient != nil {
-				nvrhContext.SshClient.Run(ctx, fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath), nil)
-				nvrhContext.SshClient.Run(ctx, fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath), nil)
+				nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath), nil)
+				nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath), nil)
 				nvrhContext.SshClient.Close()
 			}
 		}()
@@ -222,7 +222,8 @@ var CliClientOpenCommand = cli.Command{
 			)
 
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
-			done <- nvrhContext.SshClient.Run(ctx, nvimCommandString, tunnelInfo)
+			nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
+			slog.Warn("Main ssh command done")
 		}()
 
 		// Wait for remote nvim
@@ -404,7 +405,7 @@ var CliClientReconnectCommand = cli.Command{
 				tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.RemotePortNumber)
 			}
 
-			nvrhContext.SshClient.TunnelSocket(context.Background(), tunnelInfo)
+			nvrhContext.SshClient.TunnelSocket(tunnelInfo)
 		}()
 
 		// Connect client instance
@@ -482,7 +483,7 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 
 	slog.Info("Starting local editor", "cmd", replacedArgs)
 
-	editorCommand := exec.Command(replacedArgs[0], replacedArgs[1:]...)
+	editorCommand := exec.CommandContext(ctx, replacedArgs[0], replacedArgs[1:]...)
 	if replacedArgs[0] == "nvim" {
 		editorCommand.Stdin = os.Stdin
 		editorCommand.Stdout = os.Stdout
@@ -500,7 +501,7 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim) err
 
 		nvrhContext.TunneledPorts[args[0]] = true
 
-		go nvrhContext.SshClient.TunnelSocket(context.Background(), &ssh_tunnel_info.SshTunnelInfo{
+		go nvrhContext.SshClient.TunnelSocket(&ssh_tunnel_info.SshTunnelInfo{
 			Mode:         "port",
 			LocalSocket:  args[0],
 			RemoteSocket: args[0],
