@@ -5,6 +5,7 @@ WORKING_HOST="$1"
 INVALID_HOST="$2"
 
 fresh-nvrh() {
+  NVRH_CLIENT_DEBUG=true \
   env \
     -u NVRH_CLIENT_SSH_ARG \
     -u NVRH_CLIENT_SERVER_ENV \
@@ -56,13 +57,6 @@ get-remote-nvim-instance-count() {
 get-local-ssh-instance-count() {
   ps aux | grep ssh | grep -v grep | grep "$1" | wc -l | awk '{ print $1 }'
 }
-
-# bold "BOLD TEST"
-# underline "UNDERLINE TEST"
-# italic "ITALIC TEST"
-# bold "$(underline "BOLD UNDERLINE TEST")"
-# success "SUCCESS TEST"
-# fail "FAIL TEST"
 
 ./script/build
 
@@ -131,7 +125,9 @@ test-local-editor-ctrl-c() {
   print-test-description \
     "Local Editor usage (ctrl-c)" \
     "This will open nvim-qt, all you have to do is press ctrl-c in this terminal to close nvrh."
-  fresh-nvrh client open --ssh-path internal --local-editor "nvim-qt,--nofork,--server,{{SOCKET_PATH}}" "$WORKING_HOST" Work/nvrh-demo-app || true
+  if fresh-nvrh client open --ssh-path internal --local-editor "nvim-qt,--nofork,--server,{{SOCKET_PATH}}" "$WORKING_HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to ctrl-c"
+  fi
 
   COUNT=$(get-remote-nvim-instance-count "$WORKING_HOST")
   if [ "$COUNT" -ne 0 ]; then
@@ -152,3 +148,71 @@ test-local-editor-ctrl-c() {
   success "Test Passed"
 }
 test-local-editor-ctrl-c
+
+test-hanging-ssh-host() {
+  print-test-description \
+    "Hanging SSH host" \
+    "This will time out, all you have to do is wait"
+  if fresh-nvrh client open "$INVALID_HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to hanging ssh host"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$INVALID_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-hanging-ssh-host
+
+test-invalid-ssh-host() {
+  print-test-description \
+    "Invalid SSH host" \
+    "This will exit immediately"
+
+  HOST="please-never-really-work.internal"
+  START=$(date +%s)
+  if fresh-nvrh client open "$HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to hanging ssh host"
+  fi
+
+  END=$(date +%s)
+  DIFF=$((END - START))
+  if [ "$DIFF" -gt 5 ]; then
+    fail "Test failed: expected command to exit quickly, took $DIFF seconds"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-invalid-ssh-host
+
+test-invalid-local-editor() {
+  print-test-description \
+    "Invalid Local Editor" \
+    "This will exit immediately"
+
+  START=$(date +%s)
+  if fresh-nvrh client open --local-editor false "$WORKING_HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to invalid local editor"
+  fi
+
+  END=$(date +%s)
+  DIFF=$((END - START))
+  if [ "$DIFF" -gt 5 ]; then
+    fail "Test failed: expected command to exit quickly, took $DIFF seconds"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-invalid-local-editor
