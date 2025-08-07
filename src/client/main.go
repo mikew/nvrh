@@ -181,6 +181,7 @@ var CliClientOpenCommand = cli.Command{
 			min := 1025
 			max := 65535
 			randomPort := rand.IntN(max-min) + min
+
 			nvrhContext.LocalPortNumber = randomPort
 			nvrhContext.RemotePortNumber = randomPort
 		}
@@ -336,27 +337,41 @@ var CliClientReconnectCommand = cli.Command{
 			return endpointErr
 		}
 
+		// Context with cancellation on SIGINT
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer stop()
+		done := make(chan error, 1)
+
+		// Prepare the context.
 		randomId := fmt.Sprintf("%d", time.Now().Unix())
-
 		nvrhContext := &nvrh_context.NvrhContext{
-			SessionId:         sessionId,
-			Endpoint:          endpoint,
-			LocalEditor:       c.StringSlice("local-editor"),
-			ShouldUsePorts:    c.Bool("use-ports"),
-			RemoteSocketPath:  fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
-			LocalSocketPath:   filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s-%s", sessionId, randomId)),
+			SessionId: sessionId,
+			Endpoint:  endpoint,
+			// RemoteDirectory: c.Args().Get(1),
+
+			// RemoteEnv:   c.StringSlice("server-env"),
+			LocalEditor: c.StringSlice("local-editor"),
+
+			ShouldUsePorts: c.Bool("use-ports"),
+
+			RemoteSocketPath: fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId),
+			LocalSocketPath:  filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s-%s", sessionId, randomId)),
+			// TODO Handle mapping ports better with multiple clients.
+			// AutomapPorts:     c.Bool("enable-automap-ports"),
+
 			BrowserScriptPath: fmt.Sprintf("/tmp/nvrh-browser-%s", sessionId),
-			SshPath:           sshPath,
-			Debug:             isDebug,
-			SshArgs:           c.StringSlice("ssh-arg"),
+
+			SshPath: sshPath,
+			Debug:   isDebug,
+
+			TunneledPorts: make(map[string]bool),
+
+			// NvimCmd: c.StringSlice("nvim-cmd"),
+
+			SshArgs: c.StringSlice("ssh-arg"),
 		}
 
-		portNumberString := c.Args().Get(2)
-		portNumber := 0
-		if portNumberString != "" {
-			portNumber, _ = strconv.Atoi(portNumberString)
-		}
-
+		// Setup SSH client
 		if nvrhContext.SshPath == "internal" {
 			sshClient, err := go_ssh_ext.GetSshClientForEndpoint(endpoint)
 			if err != nil {
@@ -377,19 +392,39 @@ var CliClientReconnectCommand = cli.Command{
 			min := 1025
 			max := 65535
 			randomPort := rand.IntN(max-min) + min
+
+			portNumberString := c.Args().Get(2)
+			portNumber := 0
+			if portNumberString != "" {
+				converted, err := strconv.Atoi(portNumberString)
+
+				if err != nil {
+					return fmt.Errorf("invalid port number: %w", err)
+				}
+
+				portNumber = converted
+			}
+
 			nvrhContext.LocalPortNumber = randomPort
 			if portNumber != 0 {
 				nvrhContext.RemotePortNumber = portNumber
 			} else {
 				nvrhContext.RemotePortNumber = randomPort
-
 			}
 		}
 
 		var nv *nvim.Nvim
-		doneChan := make(chan error)
-		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, os.Interrupt)
+
+		// Cleanup on exit
+		defer func() {
+			slog.Info("Cleaning up")
+			closeNvimSocket(nv)
+			killAllCmds(nvrhContext.CommandsToKill)
+			os.Remove(nvrhContext.LocalSocketPath)
+			if nvrhContext.SshClient != nil {
+				nvrhContext.SshClient.Close()
+			}
+		}()
 
 		// Setup SSH tunnel
 		go func() {
@@ -407,72 +442,44 @@ var CliClientReconnectCommand = cli.Command{
 			}
 
 			nvrhContext.SshClient.TunnelSocket(tunnelInfo)
+			// TODO needed?
+			stop()
 		}()
 
-		// Connect client instance
-		nvChan := make(chan *nvim.Nvim, 1)
-		go func() {
-			nv, err := nvim_helpers.WaitForNvim(context.Background(), nvrhContext)
-
-			if err != nil {
-				slog.Error("Error connecting to nvim", "err", err)
-				doneChan <- err
-				return
-			}
-
-			slog.Info("Connected to nvim")
-			nvChan <- nv
-
-			if err := prepareRemoteNvim(nvrhContext, nv); err != nil {
-				slog.Warn("Error preparing remote nvim", "err", err)
-			}
-
-			clientCmd := BuildClientNvimCmd(context.Background(), nvrhContext)
-			if nvrhContext.Debug {
-				clientCmd.Stdout = os.Stdout
-				clientCmd.Stderr = os.Stderr
-			}
-
-			nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, clientCmd)
-
-			if err := clientCmd.Start(); err != nil {
-				slog.Error("Error starting local editor", "err", err)
-				doneChan <- err
-				return
-			}
-
-			if err := clientCmd.Wait(); err != nil {
-				slog.Error("Error running local editor", "err", err)
-				doneChan <- err
-			} else {
-				slog.Info("Local editor exited")
-				doneChan <- nil
-			}
-		}()
-
-		go func() {
-			sig := <-signalChan
-			slog.Debug("Received signal", "signal", sig)
-			doneChan <- fmt.Errorf("received signal: %s", sig)
-		}()
-
-		nv = <-nvChan
-
-		err := <-doneChan
-
-		slog.Info("Closing nvrh")
-		closeNvimSocket(nv)
-		killAllCmds(nvrhContext.CommandsToKill)
-		os.Remove(nvrhContext.LocalSocketPath)
-		if nvrhContext.SshClient != nil {
-			nvrhContext.SshClient.Close()
-		}
-
+		// Wait for remote nvim
+		nv, err := nvim_helpers.WaitForNvim(ctx, nvrhContext)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to connect to remote nvim: %w", err)
 		}
 
-		return nil
+		// Start local client
+		clientCmd := BuildClientNvimCmd(ctx, nvrhContext)
+		if nvrhContext.Debug {
+			clientCmd.Stdout = os.Stdout
+			clientCmd.Stderr = os.Stderr
+		}
+		nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, clientCmd)
+
+		if err := clientCmd.Start(); err != nil {
+			return fmt.Errorf("failed to start local nvim: %w", err)
+		}
+
+		go func() {
+			done <- clientCmd.Wait()
+		}()
+
+		select {
+		case <-ctx.Done():
+			slog.Warn("Interrupted by user")
+			return ctx.Err()
+		case err := <-done:
+			if err != nil {
+				slog.Error("Local nvim exited with error", "err", err)
+				return err
+			}
+			slog.Info("Local nvim exited cleanly")
+			return nil
+		}
 	},
 }
 
