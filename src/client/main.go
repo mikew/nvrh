@@ -191,7 +191,7 @@ var CliClientOpenCommand = cli.Command{
 		// Cleanup on exit
 		defer func() {
 			slog.Info("Cleaning up")
-			closeNvimSocket(nv)
+			closeNvimSocket(nv, true)
 			killAllCmds(nvrhContext.CommandsToKill)
 			os.Remove(nvrhContext.LocalSocketPath)
 			if nvrhContext.SshClient != nil {
@@ -418,7 +418,7 @@ var CliClientReconnectCommand = cli.Command{
 		// Cleanup on exit
 		defer func() {
 			slog.Info("Cleaning up")
-			closeNvimSocket(nv)
+			closeNvimSocket(nv, false)
 			killAllCmds(nvrhContext.CommandsToKill)
 			os.Remove(nvrhContext.LocalSocketPath)
 			if nvrhContext.SshClient != nil {
@@ -690,14 +690,17 @@ func killAllCmds(cmds []*exec.Cmd) {
 	}
 }
 
-func closeNvimSocket(nv *nvim.Nvim) {
+func closeNvimSocket(nv *nvim.Nvim, quitAll bool) {
 	if nv == nil {
 		return
 	}
 
-	slog.Info("Closing nvim")
-	if err := nv.ExecLua("vim.cmd('qall!')", nil, nil); err != nil {
-		slog.Warn("Error closing remote nvim", "err", err)
+	if quitAll {
+		if err := nv.ExecLua("vim.cmd('qall!')", nil, nil); err != nil {
+			slog.Warn("Error closing remote nvim", "err", err)
+		}
 	}
+
+	slog.Info("Closing nvim socket")
 	nv.Close()
 }
