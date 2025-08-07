@@ -688,7 +688,6 @@ func RpcHandleOpenUrl(v *nvim.Nvim, args []string) {
 
 func killAllCmds(cmds []*exec.Cmd) {
 	for _, cmd := range cmds {
-		slog.Debug("Killing command", "cmd", cmd.Args, "pid", cmd.Process.Pid)
 		exec_helpers.Kill(cmd)
 	}
 }

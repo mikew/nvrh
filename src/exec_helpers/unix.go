@@ -20,6 +20,8 @@ func Kill(cmd *exec.Cmd) {
 		return
 	}
 
+	slog.Debug("Killing command", "cmd", cmd.Args, "pid", cmd.Process.Pid)
+
 	// On Unix-like systems, we can use syscall.Kill to send a signal to the process group.
 	if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
 		if err := cmd.Process.Kill(); err != nil {
