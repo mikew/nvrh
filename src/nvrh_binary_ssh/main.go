@@ -24,7 +24,7 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 		args = append(args, "-L", tunnelInfo.BoundToIp())
 	}
 
-	if c.Ctx.SshArgs != nil && len(c.Ctx.SshArgs) > 0 {
+	if len(c.Ctx.SshArgs) > 0 {
 		args = append(args, c.Ctx.SshArgs...)
 	}
 
@@ -73,8 +73,6 @@ func (c *NvrhBinarySshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnel
 	if err := sshCommand.Start(); err != nil {
 		return
 	}
-
-	defer sshCommand.Process.Kill()
 
 	if err := sshCommand.Wait(); err != nil {
 		return

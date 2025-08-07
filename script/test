@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+set -e
+
+WORKING_HOST="$1"
+
+fresh-nvrh() {
+  NVRH_CLIENT_DEBUG=false \
+  NVRH_CLIENT_NVIM_CMD="nvim,-u,NONE" \
+  env \
+    -u NVRH_CLIENT_SSH_ARG \
+    -u NVRH_CLIENT_SERVER_ENV \
+    -u NVRH_CLIENT_SSH_PATH \
+    -u NVRH_CLIENT_LOCAL_EDITOR \
+    -u NVRH_CLIENT_USE_PORTS \
+    ./dist/nvrh-darwin-amd64 "$@"
+}
+
+BOLD="\033[1m"
+RESET="\033[0m"
+SUCCESS_COLOR="\033[32m"
+FAIL_COLOR="\033[31m"
+
+bold() {
+  echo -e "${BOLD}$1${RESET}"
+}
+
+underline() {
+  echo -e "\033[4m$1\033[0m"
+}
+
+italic() {
+  echo -e "\033[3m$1\033[0m"
+}
+
+success() {
+  echo -e "${SUCCESS_COLOR}$1${RESET}"
+}
+
+fail() {
+  echo -e "${FAIL_COLOR}$1${RESET}"
+  exit 1
+}
+
+print-test-description() {
+  bold "Test Case: $1"
+  echo
+  italic "$2"
+  italic "Press any key to continue ..."
+  read -n 1 -s
+}
+
+get-remote-nvim-instance-count() {
+  ssh "$1" -- 'ps aux | grep nvim | grep -v grep' | wc -l | awk '{ print $1 }'
+}
+
+get-local-ssh-instance-count() {
+  ps aux | grep ssh | grep -v grep | grep "$1" | wc -l | awk '{ print $1 }'
+}
+
+./script/build
+
+test-basic-binary-ssh() {
+  print-test-description \
+    "Basic Usage (binary ssh)" \
+    "This will open nvim, all you have to do is type \`:qa\`."
+  fresh-nvrh client open "$WORKING_HOST" Work/nvrh-demo-app
+
+  COUNT=$(get-remote-nvim-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 nvim instance, got $COUNT"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-basic-binary-ssh
+
+test-basic-internal-ssh() {
+  print-test-description \
+    "Basic Usage (internal ssh)" \
+    "This will open nvim, all you have to do is type \`:qa\`"
+  fresh-nvrh client open --ssh-path internal "$WORKING_HOST" Work/nvrh-demo-app
+
+  COUNT=$(get-remote-nvim-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 nvim instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-basic-internal-ssh
+
+test-local-editor-qa-wait() {
+  print-test-description \
+    "Local Editor usage" \
+    "This will open nvim-qt, all you have to do is type \`:qa\`"
+  fresh-nvrh client open --local-editor "nvim-qt,--nofork,--server,{{SOCKET_PATH}}" "$WORKING_HOST" Work/nvrh-demo-app
+
+  COUNT=$(get-remote-nvim-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 nvim instance, got $COUNT"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  COUNT=$(ps aux | grep nvim-qt | grep -v grep | wc -l | awk '{ print $1 }')
+  # Expect 2 if you're running nvim-qt locally.
+  if [ "$COUNT" -ne 2 ]; then
+    fail "Test failed: expected 0 nvim-qt instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-local-editor-qa-wait
+
+test-local-editor-ctrl-c() {
+  print-test-description \
+    "Local Editor usage (ctrl-c)" \
+    "This will open nvim-qt, all you have to do is press ctrl-c in this terminal to close nvrh."
+  if fresh-nvrh client open --ssh-path internal --local-editor "nvim-qt,--nofork,--server,{{SOCKET_PATH}}" "$WORKING_HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to ctrl-c"
+  fi
+
+  COUNT=$(get-remote-nvim-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 nvim instance, got $COUNT"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  COUNT=$(ps aux | grep nvim-qt | grep -v grep | wc -l | awk '{ print $1 }')
+  # Expect 2 if you're running nvim-qt locally.
+  if [ "$COUNT" -ne 2 ]; then
+    fail "Test failed: expected 0 nvim-qt instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-local-editor-ctrl-c
+
+test-hanging-ssh-host() {
+  HOST="10.254.254.254"
+  print-test-description \
+    "Hanging SSH host" \
+    "This will time out, all you have to do is wait"
+  if fresh-nvrh client open "$HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to hanging ssh host"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-hanging-ssh-host
+
+test-invalid-ssh-host() {
+  HOST="please-never-really-work.internal"
+
+  print-test-description \
+    "Invalid SSH host" \
+    "This will exit immediately"
+
+  START=$(date +%s)
+  if fresh-nvrh client open "$HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to hanging ssh host"
+  fi
+
+  END=$(date +%s)
+  DIFF=$((END - START))
+  if [ "$DIFF" -gt 5 ]; then
+    fail "Test failed: expected command to exit quickly, took $DIFF seconds"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-invalid-ssh-host
+
+test-invalid-local-editor() {
+  print-test-description \
+    "Invalid Local Editor" \
+    "This will exit immediately"
+
+  START=$(date +%s)
+  if fresh-nvrh client open --local-editor false "$WORKING_HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to invalid local editor"
+  fi
+
+  END=$(date +%s)
+  DIFF=$((END - START))
+  if [ "$DIFF" -gt 5 ]; then
+    fail "Test failed: expected command to exit quickly, took $DIFF seconds"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-invalid-local-editor
