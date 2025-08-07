@@ -223,8 +223,7 @@ var CliClientOpenCommand = cli.Command{
 
 			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
 			done <- nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
-			// TODO Not sure why this is needed here, but not in the client command
-			// wait.
+			// Call stop so WaitForNvim can exit.
 			stop()
 		}()
 
