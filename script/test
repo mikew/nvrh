@@ -2,14 +2,13 @@
 set -e
 
 WORKING_HOST="$1"
-INVALID_HOST="$2"
 
 fresh-nvrh() {
-  NVRH_CLIENT_DEBUG=true \
+  NVRH_CLIENT_DEBUG=false \
+  NVRH_CLIENT_NVIM_CMD="nvim,-u,NONE" \
   env \
     -u NVRH_CLIENT_SSH_ARG \
     -u NVRH_CLIENT_SERVER_ENV \
-    -u NVRH_CLIENT_NVIM_CMD \
     -u NVRH_CLIENT_SSH_PATH \
     -u NVRH_CLIENT_LOCAL_EDITOR \
     -u NVRH_CLIENT_USE_PORTS \
@@ -150,14 +149,15 @@ test-local-editor-ctrl-c() {
 test-local-editor-ctrl-c
 
 test-hanging-ssh-host() {
+  HOST="10.254.254.254"
   print-test-description \
     "Hanging SSH host" \
     "This will time out, all you have to do is wait"
-  if fresh-nvrh client open "$INVALID_HOST" Work/nvrh-demo-app; then
+  if fresh-nvrh client open "$HOST" Work/nvrh-demo-app; then
     fail "Test failed: expected command exit with error due to hanging ssh host"
   fi
 
-  COUNT=$(get-local-ssh-instance-count "$INVALID_HOST")
+  COUNT=$(get-local-ssh-instance-count "$HOST")
   if [ "$COUNT" -ne 0 ]; then
     fail "Test failed: expected 0 ssh instance, got $COUNT"
   fi
@@ -167,11 +167,12 @@ test-hanging-ssh-host() {
 test-hanging-ssh-host
 
 test-invalid-ssh-host() {
+  HOST="please-never-really-work.internal"
+
   print-test-description \
     "Invalid SSH host" \
     "This will exit immediately"
 
-  HOST="please-never-really-work.internal"
   START=$(date +%s)
   if fresh-nvrh client open "$HOST" Work/nvrh-demo-app; then
     fail "Test failed: expected command exit with error due to hanging ssh host"
