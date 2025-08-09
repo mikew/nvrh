@@ -605,7 +605,7 @@ end
 	if mode == "secondary" {
 		batch.ExecLua(`
 local channel_id = ...
-for i, port in ipairs(_G._nvrh.mapped_ports) do
+for port, _ in pairs(_G._nvrh.mapped_ports) do
 	_G._nvrh._tunnel_port_with_channel(channel_id, port)
 end
 		`, nil, nv.ChannelID())
