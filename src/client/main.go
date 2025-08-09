@@ -563,8 +563,6 @@ _G._nvrh = {
 	end,
 }
 
-vim.print(_G._nvrh)
-
 vim.api.nvim_create_user_command(
 	'NvrhTunnelPort',
 	function(args)
