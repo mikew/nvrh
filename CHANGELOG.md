@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.1.23 (2025-08-09)
+
+
+### Features
+
+* Better multiple sessions ([#41](https://github.com/mikew/nvrh/issues/41)) ([8f20913](https://github.com/mikew/nvrh/commit/8f20913c18d0d35542ab08aaa034ce9e961ca73f)), closes [#40](https://github.com/mikew/nvrh/issues/40)
+
 ## 0.1.22 (2025-08-07)
 
 
