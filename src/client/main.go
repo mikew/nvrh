@@ -238,7 +238,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, "primary"); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -455,6 +455,11 @@ var CliClientReconnectCommand = cli.Command{
 			return fmt.Errorf("failed to connect to remote nvim: %w", err)
 		}
 
+		// Prepare remote nvim
+		if err := prepareRemoteNvim(nvrhContext, nv, "secondary"); err != nil {
+			slog.Warn("Error preparing remote nvim", "err", err)
+		}
+
 		// Start local client
 		clientCmd := BuildClientNvimCmd(ctx, nvrhContext)
 		if nvrhContext.Debug {
@@ -504,7 +509,7 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 	return editorCommand
 }
 
-func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim) error {
+func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mode string) error {
 	nv.RegisterHandler("tunnel-port", func(v *nvim.Nvim, args []string) {
 		if _, ok := nvrhContext.TunneledPorts[args[0]]; ok {
 			return
@@ -523,54 +528,103 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim) err
 
 	batch := nv.NewBatch()
 
-	// Set $NVRH_SESSION_ID so we can identify the session.
-	batch.Command(fmt.Sprintf(`let $NVRH_SESSION_ID="%s"`, nvrhContext.SessionId))
-	// Let nvim know the channel id so it can send us messages.
-	batch.Command(fmt.Sprintf(`let $NVRH_CHANNEL_ID="%d"`, nv.ChannelID()))
-	// Set $BROWSER so the remote machine can open a browser locally.
-	batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, nvrhContext.BrowserScriptPath))
+	slog.Info("Preparing remote nvim", "mode", mode, "sessionId", nvrhContext.SessionId)
 
-	// Add command to tunnel port.
-	batch.ExecLua(`
+	if mode == "primary" {
+		batch.ExecLua(`
+local session_id = ...
+
+_G._nvrh = {
+	session_id = session_id,
+	client_channels = {},
+
+	-- Only really used when connecting secondary sessions, the actual Go code
+	-- already checks if a port is already mapped.
+	mapped_ports = {},
+
+	tunnel_port = function(port)
+		for _, channel_id in ipairs(_G._nvrh.client_channels) do
+			_G._nvrh._tunnel_port_with_channel(channel_id, port)
+		end
+
+		if not _G._nvrh.mapped_ports[port] then
+			_G._nvrh.mapped_ports[port] = true
+		end
+	end,
+
+	_tunnel_port_with_channel = function(channel_id, port)
+		pcall(vim.rpcnotify, tonumber(channel_id), 'tunnel-port', { port })
+	end,
+
+	open_url = function(url)
+		for _, channel_id in ipairs(_G._nvrh.client_channels) do
+			pcall(vim.rpcnotify, tonumber(channel_id), 'open-url', { url })
+		end
+	end,
+}
+
 vim.api.nvim_create_user_command(
 	'NvrhTunnelPort',
 	function(args)
-		vim.rpcnotify(tonumber(os.getenv('NVRH_CHANNEL_ID')), 'tunnel-port', { args.args })
+		_G._nvrh.tunnel_port(args.args)
 	end,
 	{
 		nargs = 1,
 		force = true,
 	}
 )
-	`, nil)
 
-	// Add command to open url.
-	batch.ExecLua(`
 vim.api.nvim_create_user_command(
 	'NvrhOpenUrl',
 	function(args)
-		vim.rpcnotify(tonumber(os.getenv('NVRH_CHANNEL_ID')), 'open-url', { args.args })
+		_G._nvrh.open_url(args.args)
 	end,
 	{
 		nargs = 1,
 		force = true,
 	}
 )
-	`, nil)
+
+local original_open = vim.ui.open
+vim.ui.open = function(uri, opts)
+	if type(uri) == 'string' and uri:match('^https?://') then
+		_G._nvrh.open_url(uri)
+		return nil, nil
+	else
+		return original_open(uri, opts)
+	end
+end
+		`, nil, nvrhContext.SessionId)
+	}
+
+	batch.ExecLua(`
+		local channel_id = ...
+		table.insert(_G._nvrh.client_channels, channel_id)
+	`, nil, nv.ChannelID())
+
+	if mode == "secondary" {
+		batch.ExecLua(`
+local channel_id = ...
+for port, _ in pairs(_G._nvrh.mapped_ports) do
+	_G._nvrh._tunnel_port_with_channel(channel_id, port)
+end
+		`, nil, nv.ChannelID())
+	}
+
+	batch.Command(fmt.Sprintf(`let $BROWSER="%s"`, nvrhContext.BrowserScriptPath))
 
 	// Prepare the browser script.
 	batch.ExecLua(`
-local browser_script_path, socket_path, channel_id = ...
+local browser_script_path, socket_path = ...
 
 local script_contents = [[
 #!/bin/sh
 
 SOCKET_PATH="%s"
-CHANNEL_ID="%s"
 
-exec nvim --server "$SOCKET_PATH" --remote-expr "rpcnotify(str2nr($CHANNEL_ID), 'open-url', ['$1'])" > /dev/null
+exec nvim --server "$SOCKET_PATH" --remote-expr "v:lua._nvrh.open_url('$1')" > /dev/null
 ]]
-script_contents = string.format(script_contents, socket_path, channel_id)
+script_contents = string.format(script_contents, socket_path)
 
 vim.fn.writefile(vim.fn.split(script_contents, '\n'), browser_script_path)
 os.execute('chmod +x ' .. browser_script_path)
@@ -579,82 +633,63 @@ os.execute('chmod +x ' .. browser_script_path)
 	if nvrhContext.AutomapPorts {
 		batch.ExecLua(`
 local nvrh_port_scanner = {
-  active_watchers = {},
+	active_watchers = {},
 
-  mapped_ports = {},
-
-  patterns = {
-    -- "port 3000"
-    "port%s+(%d+)",
-    -- "localhost:3000"
-    "localhost:(%d+)",
-    -- "0.0.0.0:3000"
-    "%d+%.%d+%.%d+%.%d+:(%d+)",
-    -- ":3000" at start of line
-    "^:(%d+)",
-    -- ":3000" but avoid eslint errors (error in foo.tsx:3)
-    "%s+:(%d+)",
-    -- http://some.domain.com:3000 / https://some.domain.com:3000
-    "https?://[^/]+:(%d+)",
-  },
+	patterns = {
+		-- "port 3000"
+		"port%s+(%d+)",
+		-- "localhost:3000"
+		"localhost:(%d+)",
+		-- "0.0.0.0:3000"
+		"%d+%.%d+%.%d+%.%d+:(%d+)",
+		-- ":3000" at start of line
+		"^:(%d+)",
+		-- ":3000" but avoid eslint errors (error in foo.tsx:3)
+		"%s+:(%d+)",
+		-- http://some.domain.com:3000 / https://some.domain.com:3000
+		"https?://[^/]+:(%d+)",
+	},
 }
 
 function nvrh_port_scanner.attach_port_watcher(bufnr)
-  if vim.bo[bufnr].buftype ~= "terminal" then
-    return
-  end
+	if vim.bo[bufnr].buftype ~= "terminal" then
+		return
+	end
 
-  -- Already watching?
-  if nvrh_port_scanner.active_watchers[bufnr] then
-    return
-  end
+	-- Already watching?
+	if nvrh_port_scanner.active_watchers[bufnr] then
+		return
+	end
 
-  local function on_lines(_, _, _, lastline, new_lastline, _)
-    local lines = vim.api.nvim_buf_get_lines(bufnr, lastline, new_lastline, false)
+	local function on_lines(_, _, _, lastline, new_lastline, _)
+		local lines = vim.api.nvim_buf_get_lines(bufnr, lastline, new_lastline, false)
 
-    for _, line in ipairs(lines) do
-      for _, pattern in ipairs(nvrh_port_scanner.patterns) do
-        local port = string.match(line, pattern)
-        if port then
-          if nvrh_port_scanner.mapped_ports[port] then
-            -- Already notified about this port
-          else
-						nvrh_port_scanner.mapped_ports[port] = true
-            vim.rpcnotify(tonumber(os.getenv("NVRH_CHANNEL_ID")), "tunnel-port", { port })
-          end
-          break
-        end
-      end
-    end
-  end
+		for _, line in ipairs(lines) do
+			for _, pattern in ipairs(nvrh_port_scanner.patterns) do
+				local port = string.match(line, pattern)
+				if port then
+					_G._nvrh.tunnel_port(port)
+					break
+				end
+			end
+		end
+	end
 
-  vim.api.nvim_buf_attach(bufnr, false, {
-    on_lines = on_lines,
-  })
+	vim.api.nvim_buf_attach(bufnr, false, {
+		on_lines = on_lines,
+	})
 
-  nvrh_port_scanner.active_watchers[bufnr] = true
+	nvrh_port_scanner.active_watchers[bufnr] = true
 end
 
 -- Attach watcher on TermOpen
 vim.api.nvim_create_autocmd("TermOpen", {
-  callback = function(args)
-    nvrh_port_scanner.attach_port_watcher(args.buf)
-  end,
+	callback = function(args)
+		nvrh_port_scanner.attach_port_watcher(args.buf)
+	end,
 })
 		`, nil)
 	}
-
-	batch.ExecLua(`
-local original_open = vim.ui.open
-vim.ui.open = function(uri, opts)
-  if type(uri) == 'string' and uri:match('^https?://') then
-    vim.rpcnotify(tonumber(os.getenv('NVRH_CHANNEL_ID')), 'open-url', { uri })
-    return nil, nil
-  else
-    return original_open(uri, opts)
-  end
-end
-	`, nil)
 
 	if err := batch.Execute(); err != nil {
 		return err
