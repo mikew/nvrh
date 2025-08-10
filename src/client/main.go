@@ -563,14 +563,14 @@ socket_path,
 browser_script_path,
 should_map_ports = ...
 
-vim.print("Preparing remote nvim", {
-	mode = nvrh_mode,
-	session_id = session_id,
-	channel_id = channel_id,
-	socket_path = socket_path,
-	browser_script_path = browser_script_path,
-	should_map_ports = should_map_ports,
-})
+---vim.print("Preparing remote nvim", {
+---	mode = nvrh_mode,
+---	session_id = session_id,
+---	channel_id = channel_id,
+---	socket_path = socket_path,
+---	browser_script_path = browser_script_path,
+---	should_map_ports = should_map_ports,
+---})
 
 %s
 		`, scriptsJoined), nil,
