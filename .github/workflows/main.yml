@@ -55,7 +55,7 @@ jobs:
         id: release_please
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          manifest-file: release-please-manifest.json
+          config-file: release-please-config.json
 
   deploy:
     needs:

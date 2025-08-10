@@ -1,0 +1,11 @@
+{
+  "release-type": "simple",
+  "packages": {
+    ".": {
+      "release-type": "generic",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "version-file": "manifest.json"
+    }
+  }
+}
