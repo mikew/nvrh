@@ -4,22 +4,22 @@ if should_map_ports then
 
     patterns = {
       -- "port 3000"
-      "port%s+(%d+)",
+      'port%s+(%d+)',
       -- "localhost:3000"
-      "localhost:(%d+)",
+      'localhost:(%d+)',
       -- "0.0.0.0:3000"
-      "%d+%.%d+%.%d+%.%d+:(%d+)",
+      '%d+%.%d+%.%d+%.%d+:(%d+)',
       -- ":3000" at start of line
-      "^:(%d+)",
+      '^:(%d+)',
       -- ":3000" but avoid eslint errors (error in foo.tsx:3)
-      "%s+:(%d+)",
+      '%s+:(%d+)',
       -- http://some.domain.com:3000 / https://some.domain.com:3000
-      "https?://[^/]+:(%d+)",
+      'https?://[^/]+:(%d+)',
     },
   }
 
   function nvrh_port_scanner.attach_port_watcher(bufnr)
-    if vim.bo[bufnr].buftype ~= "terminal" then
+    if vim.bo[bufnr].buftype ~= 'terminal' then
       return
     end
 
@@ -29,7 +29,8 @@ if should_map_ports then
     end
 
     local function on_lines(_, _, _, lastline, new_lastline, _)
-      local lines = vim.api.nvim_buf_get_lines(bufnr, lastline, new_lastline, false)
+      local lines =
+        vim.api.nvim_buf_get_lines(bufnr, lastline, new_lastline, false)
 
       for _, line in ipairs(lines) do
         for _, pattern in ipairs(nvrh_port_scanner.patterns) do
@@ -50,7 +51,7 @@ if should_map_ports then
   end
 
   -- Attach watcher on TermOpen
-  vim.api.nvim_create_autocmd("TermOpen", {
+  vim.api.nvim_create_autocmd('TermOpen', {
     callback = function(args)
       nvrh_port_scanner.attach_port_watcher(args.buf)
     end,

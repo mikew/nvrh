@@ -14,10 +14,10 @@ end
 ---@param channel_id integer
 ---@param port string|integer
 function _G._nvrh._tunnel_port_with_channel(channel_id, port)
-  pcall(vim.rpcnotify, tonumber(channel_id), "tunnel-port", { tostring(port) })
+  pcall(vim.rpcnotify, tonumber(channel_id), 'tunnel-port', { tostring(port) })
 end
 
-vim.api.nvim_create_user_command("NvrhTunnelPort", function(args)
+vim.api.nvim_create_user_command('NvrhTunnelPort', function(args)
   _G._nvrh.tunnel_port(args.args)
 end, {
   nargs = 1,
