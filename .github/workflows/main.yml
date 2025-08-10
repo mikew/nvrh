@@ -8,6 +8,11 @@ on:
     tags-ignore:
       - "**"
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -25,33 +30,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Bumping the version in each build is easier than setting up a new job
-      # and transferring over artifacts.
-      # We do it again in the deploy job and then commit that along with other
-      # files generated during that phase.
-      - run: npx commit-and-tag-version --skip.commit --skip.tag
-        shell: bash
-        if: endsWith(github.ref, '/main')
-
       - run: ./script/build
         shell: bash
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wadpunk-${{ matrix.platform }}-${{ runner.arch }}
+          name: nvrh-${{ matrix.platform }}-${{ runner.arch }}
           retention-days: 7
           path: |
             dist/*
 
+  release_please:
+    runs-on: ubuntu-latest
+
+    outputs:
+      release_please_version: ${{ steps.release_please.outputs.version }}
+      release_please_tag_name: ${{ steps.release_please.outputs.tag_name }}
+      release_please_release_created: ${{ steps.release_please.outputs.release_created }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: googleapis/release-please-action@v4
+        id: release_please
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: node
+
   deploy:
     needs:
+      - release_please
       - build
 
     runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
-        if: endsWith(github.ref, '/main')
+        if: ${{ needs.release_please.outputs.release_please_release_created == 'true' }}
 
       # prepare-env: Push as github bot.
       # https://github.community/t/github-actions-bot-email-address/17204/5
@@ -60,21 +75,21 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         shell: bash
-        if: endsWith(github.ref, '/main')
+        if: ${{ needs.release_please.outputs.release_please_release_created == 'true' }}
 
       - uses: actions/download-artifact@v4
-        if: endsWith(github.ref, '/main')
+        if: ${{ needs.release_please.outputs.release_please_release_created == 'true' }}
 
       # This is CI specific, artifacts don't seem to be stored with a helpful
       # path.
       - run: |
           mkdir -p dist
-          cp -rl wadpunk-ubuntu-22.04-X64/* dist
+          cp -rl nvrh-ubuntu-22.04-X64/* dist
         shell: bash
-        if: endsWith(github.ref, '/main')
+        if: ${{ needs.release_please.outputs.release_please_release_created == 'true' }}
 
-      - run: ./script/deploy
+      - run: ./script/deploy "${{ needs.release_please.outputs.release_please_version }}" "${{ needs.release_please.outputs.release_please_tag_name }}"
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: endsWith(github.ref, '/main')
+        if: ${{ needs.release_please.outputs.release_please_release_created == 'true' }}
