@@ -7,7 +7,7 @@ function _G._nvrh.open_url(url)
   end
 end
 
-vim.api.nvim_create_user_command("NvrhOpenUrl", function(args)
+vim.api.nvim_create_user_command('NvrhOpenUrl', function(args)
   _G._nvrh.open_url(args.args)
 end, {
   nargs = 1,
@@ -16,7 +16,7 @@ end, {
 
 local original_open = vim.ui.open
 vim.ui.open = function(uri, opts)
-  if type(uri) == "string" and uri:match("^https?://") then
+  if type(uri) == 'string' and uri:match('^https?://') then
     _G._nvrh.open_url(uri)
     return nil, nil
   else

@@ -563,7 +563,6 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 	case "primary":
 		allScripts = append(allScripts,
 			lua_files.ReadLuaFile("lua/init.lua"),
-			lua_files.ReadLuaFile("lua/register_local_client.lua"),
 
 			lua_files.ReadLuaFile("lua/open_url.lua"),
 			lua_files.ReadLuaFile("lua/prepare_browser_script.lua"),
@@ -575,8 +574,6 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 
 	case "secondary":
 		allScripts = append(allScripts,
-			lua_files.ReadLuaFile("lua/register_local_client.lua"),
-
 			lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
 		)
 	}
