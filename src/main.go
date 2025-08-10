@@ -11,7 +11,7 @@ import (
 	"nvrh/src/client"
 )
 
-//go:embed manifest.json
+//go:embed package.json
 var manifestData []byte
 
 type Manifest struct {

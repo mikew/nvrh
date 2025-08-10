@@ -55,7 +55,7 @@ jobs:
         id: release_please
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
+          release-type: node
 
   deploy:
     needs:
