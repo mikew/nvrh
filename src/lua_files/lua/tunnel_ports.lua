@@ -1,7 +1,9 @@
 ---@param port string|integer
 function _G._nvrh.tunnel_port(port)
-  for _, channel_id in ipairs(_G._nvrh.client_channels) do
-    _G._nvrh._tunnel_port_with_channel(channel_id, port)
+  for _, channel in ipairs(_G._nvrh.get_nvrh_channels()) do
+    if channel.client.methods['tunnel-port'] then
+      _G._nvrh._tunnel_port_with_channel(channel_id, port)
+    end
   end
 
   if not _G._nvrh.mapped_ports[port] then

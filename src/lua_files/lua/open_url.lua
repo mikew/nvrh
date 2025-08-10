@@ -1,7 +1,9 @@
 ---@param url string
 function _G._nvrh.open_url(url)
-  for _, channel_id in ipairs(_G._nvrh.client_channels) do
-    pcall(vim.rpcnotify, tonumber(channel_id), "open-url", { url })
+  for _, channel in ipairs(_G._nvrh.get_nvrh_channels()) do
+    if channel.client.methods['open-url'] then
+      pcall(vim.rpcnotify, tonumber(channel.id), 'open-url', { url })
+    end
   end
 end
 
