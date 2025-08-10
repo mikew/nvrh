@@ -238,6 +238,33 @@ var CliClientOpenCommand = cli.Command{
 			return fmt.Errorf("failed to connect to remote nvim: %w", err)
 		}
 
+		nv.SetClientInfo(
+			"nvrh",
+			nvim.ClientVersion{},
+			"rpc",
+			map[string]*nvim.ClientMethod{
+				"tunnel-port": {
+					Async: true,
+					NArgs: nvim.ClientMethodNArgs{
+						Min: 1,
+						Max: 1,
+					},
+				},
+
+				"open-url": {
+					Async: true,
+					NArgs: nvim.ClientMethodNArgs{
+						Min: 1,
+						Max: 1,
+					},
+				},
+			},
+			nvim.ClientAttributes{
+				"nvrh_mode":    "primary",
+				"nvrh_version": c.App.Version,
+			},
+		)
+
 		// Prepare remote nvim
 		if err := prepareRemoteNvim(nvrhContext, nv, "primary"); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
