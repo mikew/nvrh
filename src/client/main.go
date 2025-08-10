@@ -239,7 +239,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, "primary"); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, "primary", c.App.Version); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -457,7 +457,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, "secondary"); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, "secondary", c.App.Version); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -510,7 +510,34 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 	return editorCommand
 }
 
-func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mode string) error {
+func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mode string, version string) error {
+	nv.SetClientInfo(
+		"nvrh",
+		nvim.ClientVersion{},
+		"rpc",
+		map[string]*nvim.ClientMethod{
+			"tunnel-port": {
+				Async: true,
+				NArgs: nvim.ClientMethodNArgs{
+					Min: 1,
+					Max: 1,
+				},
+			},
+
+			"open-url": {
+				Async: true,
+				NArgs: nvim.ClientMethodNArgs{
+					Min: 1,
+					Max: 1,
+				},
+			},
+		},
+		nvim.ClientAttributes{
+			"nvrh_mode":    mode,
+			"nvrh_version": version,
+		},
+	)
+
 	nv.RegisterHandler("tunnel-port", func(v *nvim.Nvim, args []string) {
 		if _, ok := nvrhContext.TunneledPorts[args[0]]; ok {
 			return
@@ -536,7 +563,6 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 	case "primary":
 		allScripts = append(allScripts,
 			lua_files.ReadLuaFile("lua/init.lua"),
-			lua_files.ReadLuaFile("lua/register_local_client.lua"),
 
 			lua_files.ReadLuaFile("lua/open_url.lua"),
 			lua_files.ReadLuaFile("lua/prepare_browser_script.lua"),
@@ -548,8 +574,6 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 
 	case "secondary":
 		allScripts = append(allScripts,
-			lua_files.ReadLuaFile("lua/register_local_client.lua"),
-
 			lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
 		)
 	}
