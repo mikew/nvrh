@@ -1,0 +1,12 @@
+{
+  "packages": {
+    ".": {
+      "path": ".",
+      "changelog-path": "CHANGELOG.md",
+      "version-file": {
+        "path": "manifest.json",
+        "jsonpath": "$.version"
+      }
+    }
+  }
+}
