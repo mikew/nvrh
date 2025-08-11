@@ -30,12 +30,8 @@ if should_initialize then
 
   vim.api.nvim_create_autocmd('VimLeavePre', {
     callback = function()
-      local browser_script_path =
-        string.format('/tmp/nvrh-browser-%s', session_id)
       os.remove(browser_script_path)
-
-      local socket_file = string.format('/tmp/nvrh-session-%s', session_id)
-      os.remove(socket_file)
+      os.remove(socket_path)
     end,
   })
 end
