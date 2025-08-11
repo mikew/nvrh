@@ -234,7 +234,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, "primary", c.App.Version); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, c.App.Version); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -452,7 +452,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, "secondary", c.App.Version); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, c.App.Version); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -505,7 +505,7 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 	return editorCommand
 }
 
-func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mode string, version string) error {
+func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, version string) error {
 	nv.SetClientInfo(
 		"nvrh",
 		nvim.ClientVersion{},
@@ -528,7 +528,6 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 			},
 		},
 		nvim.ClientAttributes{
-			"nvrh_mode":    mode,
 			"nvrh_version": version,
 		},
 	)
@@ -551,7 +550,7 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 
 	batch := nv.NewBatch()
 
-	slog.Info("Preparing remote nvim", "mode", mode, "sessionId", nvrhContext.SessionId)
+	slog.Info("Preparing remote nvim", "sessionId", nvrhContext.SessionId)
 
 	allScripts := []string{
 		lua_files.ReadLuaFile("lua/init.lua"),
@@ -566,8 +565,7 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 	scriptsJoined := strings.Join(allScripts, "\n\n")
 
 	batch.ExecLua(fmt.Sprintf(`
-local nvrh_mode,
-session_id,
+local session_id,
 channel_id,
 socket_path,
 browser_script_path,
@@ -576,7 +574,6 @@ should_map_ports = ...
 local should_initialize = _G._nvrh == nil
 
 ---vim.print("Preparing remote nvim", {
----	mode = nvrh_mode,
 ---	session_id = session_id,
 ---	channel_id = channel_id,
 ---	socket_path = socket_path,
@@ -587,7 +584,6 @@ local should_initialize = _G._nvrh == nil
 
 %s
 		`, scriptsJoined), nil,
-		mode,
 		nvrhContext.SessionId,
 		nv.ChannelID(),
 		nvrhContext.RemoteSocketOrPort(),

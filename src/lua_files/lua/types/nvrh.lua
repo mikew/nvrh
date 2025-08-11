@@ -1,8 +1,6 @@
 ---@meta
 
 --- These are bridged from the Go code
----@type "primary"|"secondary"
-nvrh_mode = ''
 session_id = ''
 channel_id = -1
 socket_path = ''
