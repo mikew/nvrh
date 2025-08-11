@@ -57,6 +57,10 @@ get-local-ssh-instance-count() {
   ps aux | grep ssh | grep -v grep | grep "$1" | wc -l | awk '{ print $1 }'
 }
 
+get-remote-leftover-files-count() {
+  ssh "$1" -- 'find /tmp -name "nvrh-*"' | wc -l | awk '{ print $1 }'
+}
+
 ./script/build
 
 test-basic-binary-ssh() {
@@ -75,6 +79,11 @@ test-basic-binary-ssh() {
     fail "Test failed: expected 0 ssh instance, got $COUNT"
   fi
 
+  COUNT=$(get-remote-leftover-files-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 leftover files, got $COUNT"
+  fi
+
   success "Test Passed"
 }
 test-basic-binary-ssh
@@ -88,6 +97,11 @@ test-basic-internal-ssh() {
   COUNT=$(get-remote-nvim-instance-count "$WORKING_HOST")
   if [ "$COUNT" -ne 0 ]; then
     fail "Test failed: expected 0 nvim instance, got $COUNT"
+  fi
+
+  COUNT=$(get-remote-leftover-files-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 leftover files, got $COUNT"
   fi
 
   success "Test Passed"
@@ -116,6 +130,11 @@ test-local-editor-qa-wait() {
     fail "Test failed: expected 0 nvim-qt instance, got $COUNT"
   fi
 
+  COUNT=$(get-remote-leftover-files-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 leftover files, got $COUNT"
+  fi
+
   success "Test Passed"
 }
 test-local-editor-qa-wait
@@ -142,6 +161,11 @@ test-local-editor-ctrl-c() {
   # Expect 2 if you're running nvim-qt locally.
   if [ "$COUNT" -ne 2 ]; then
     fail "Test failed: expected 0 nvim-qt instance, got $COUNT"
+  fi
+
+  COUNT=$(get-remote-leftover-files-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 leftover files, got $COUNT"
   fi
 
   success "Test Passed"
@@ -212,6 +236,11 @@ test-invalid-local-editor() {
   COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
   if [ "$COUNT" -ne 0 ]; then
     fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  COUNT=$(get-remote-leftover-files-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 leftover files, got $COUNT"
   fi
 
   success "Test Passed"
