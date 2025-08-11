@@ -2,9 +2,11 @@
 
 --- These are bridged from the Go code
 ---@type "primary"|"secondary"
-nvrh_mode = ""
-session_id = ""
+nvrh_mode = ''
+session_id = ''
 channel_id = -1
-socket_path = ""
-browser_script_path = ""
+socket_path = ''
+browser_script_path = ''
 should_map_ports = false
+
+should_initialize = false
