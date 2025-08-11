@@ -26,3 +26,14 @@ function _G._nvrh.get_nvrh_channels()
 end
 
 vim.env.NVRH_SESSION_ID = session_id
+
+vim.api.nvim_create_autocmd('VimLeavePre', {
+  callback = function()
+    local browser_script_path =
+      string.format('/tmp/nvrh-browser-%s', session_id)
+    os.remove(browser_script_path)
+
+    local socket_file = string.format('/tmp/nvrh-session-%s', session_id)
+    os.remove(socket_file)
+  end,
+})
