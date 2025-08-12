@@ -1,8 +1,3 @@
-_G._nvrh = {
-  ---@type { [string]: boolean }
-  mapped_ports = {},
-}
-
 ---@class NvrhChannelClient
 ---@field name string
 ---@field attributes table<string, string>
@@ -12,17 +7,31 @@ _G._nvrh = {
 ---@field id integer
 ---@field client NvrhChannelClient
 
-function _G._nvrh.get_nvrh_channels()
-  ---@type NvrhChannel[]
-  local channels = {}
+if should_initialize then
+  _G._nvrh = {
+    ---@type { [string]: boolean }
+    mapped_ports = {},
+  }
 
-  for _, channel in ipairs(vim.api.nvim_list_chans()) do
-    if channel.client ~= nil and channel.client.name == 'nvrh' then
-      table.insert(channels, channel)
+  function _G._nvrh.get_nvrh_channels()
+    ---@type NvrhChannel[]
+    local channels = {}
+
+    for _, channel in ipairs(vim.api.nvim_list_chans()) do
+      if channel.client ~= nil and channel.client.name == 'nvrh' then
+        table.insert(channels, channel)
+      end
     end
+
+    return channels
   end
 
-  return channels
-end
+  vim.env.NVRH_SESSION_ID = session_id
 
-vim.env.NVRH_SESSION_ID = session_id
+  vim.api.nvim_create_autocmd('VimLeavePre', {
+    callback = function()
+      os.remove(browser_script_path)
+      os.remove(socket_path)
+    end,
+  })
+end

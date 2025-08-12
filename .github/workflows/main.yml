@@ -41,6 +41,9 @@ jobs:
             dist/*
 
   release_please:
+    needs:
+      - build
+
     runs-on: ubuntu-latest
 
     outputs:

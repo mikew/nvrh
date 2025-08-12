@@ -196,11 +196,6 @@ var CliClientOpenCommand = cli.Command{
 			killAllCmds(nvrhContext.CommandsToKill)
 			os.Remove(nvrhContext.LocalSocketPath)
 			if nvrhContext.SshClient != nil {
-				if nv != nil {
-					nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.RemoteSocketPath), nil)
-					nvrhContext.SshClient.Run(fmt.Sprintf("rm -f '%s'", nvrhContext.BrowserScriptPath), nil)
-				}
-
 				nvrhContext.SshClient.Close()
 			}
 		}()
@@ -239,7 +234,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, "primary", c.App.Version); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, c.App.Version); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -457,7 +452,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, "secondary", c.App.Version); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, c.App.Version); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -510,7 +505,7 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 	return editorCommand
 }
 
-func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mode string, version string) error {
+func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, version string) error {
 	nv.SetClientInfo(
 		"nvrh",
 		nvim.ClientVersion{},
@@ -533,7 +528,6 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 			},
 		},
 		nvim.ClientAttributes{
-			"nvrh_mode":    mode,
 			"nvrh_version": version,
 		},
 	)
@@ -556,49 +550,40 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, mod
 
 	batch := nv.NewBatch()
 
-	slog.Info("Preparing remote nvim", "mode", mode, "sessionId", nvrhContext.SessionId)
+	slog.Info("Preparing remote nvim", "sessionId", nvrhContext.SessionId)
 
-	allScripts := []string{}
-	switch mode {
-	case "primary":
-		allScripts = append(allScripts,
-			lua_files.ReadLuaFile("lua/init.lua"),
+	allScripts := []string{
+		lua_files.ReadLuaFile("lua/init.lua"),
 
-			lua_files.ReadLuaFile("lua/open_url.lua"),
-			lua_files.ReadLuaFile("lua/prepare_browser_script.lua"),
+		lua_files.ReadLuaFile("lua/open_url.lua"),
+		lua_files.ReadLuaFile("lua/prepare_browser_script.lua"),
 
-			lua_files.ReadLuaFile("lua/tunnel_ports.lua"),
-			lua_files.ReadLuaFile("lua/primary_automap_ports.lua"),
-			lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
-		)
-
-	case "secondary":
-		allScripts = append(allScripts,
-			lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
-		)
+		lua_files.ReadLuaFile("lua/tunnel_ports.lua"),
+		lua_files.ReadLuaFile("lua/primary_automap_ports.lua"),
+		lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
 	}
 	scriptsJoined := strings.Join(allScripts, "\n\n")
 
 	batch.ExecLua(fmt.Sprintf(`
-local nvrh_mode,
-session_id,
+local session_id,
 channel_id,
 socket_path,
 browser_script_path,
 should_map_ports = ...
 
+local should_initialize = _G._nvrh == nil
+
 ---vim.print("Preparing remote nvim", {
----	mode = nvrh_mode,
 ---	session_id = session_id,
 ---	channel_id = channel_id,
 ---	socket_path = socket_path,
 ---	browser_script_path = browser_script_path,
 ---	should_map_ports = should_map_ports,
+---	should_initialize = should_initialize,
 ---})
 
 %s
 		`, scriptsJoined), nil,
-		mode,
 		nvrhContext.SessionId,
 		nv.ChannelID(),
 		nvrhContext.RemoteSocketOrPort(),
