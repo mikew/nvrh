@@ -567,12 +567,12 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 	allScripts := []string{
 		lua_files.ReadLuaFile("lua/init.lua"),
 
-		lua_files.ReadLuaFile("lua/open_url.lua"),
-		lua_files.ReadLuaFile("lua/prepare_browser_script.lua"),
+		lua_files.ReadLuaFile("lua/rpc_open_url.lua"),
+		lua_files.ReadLuaFile("lua/setup_browser_script.lua"),
 
-		lua_files.ReadLuaFile("lua/tunnel_ports.lua"),
-		lua_files.ReadLuaFile("lua/primary_automap_ports.lua"),
-		lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
+		lua_files.ReadLuaFile("lua/rpc_tunnel_port.lua"),
+		lua_files.ReadLuaFile("lua/setup_port_scanner.lua"),
+		lua_files.ReadLuaFile("lua/session_automap_ports.lua"),
 	}
 	scriptsJoined := strings.Join(allScripts, "\n\n")
 
