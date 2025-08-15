@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -188,11 +189,12 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		var nv *nvim.Nvim
+		didClientFail := false
 
 		// Cleanup on exit
 		defer func() {
 			slog.Info("Cleaning up")
-			closeNvimSocket(nv, true)
+			closeNvimSocket(nv, didClientFail)
 			killAllCmds(nvrhContext.CommandsToKill)
 			os.Remove(nvrhContext.LocalSocketPath)
 			if nvrhContext.SshClient != nil {
@@ -247,11 +249,14 @@ var CliClientOpenCommand = cli.Command{
 		nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, clientCmd)
 
 		if err := clientCmd.Start(); err != nil {
+			didClientFail = true
 			return fmt.Errorf("failed to start local nvim: %w", err)
 		}
 
 		go func() {
-			done <- clientCmd.Wait()
+			err := clientCmd.Wait()
+			didClientFail = err != nil
+			done <- err
 		}()
 
 		select {
@@ -506,6 +511,9 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 }
 
 func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, version string) error {
+	currentUser, _ := user.Current()
+	hostname, _ := os.Hostname()
+
 	nv.SetClientInfo(
 		"nvrh",
 		nvim.ClientVersion{},
@@ -528,7 +536,12 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 			},
 		},
 		nvim.ClientAttributes{
-			"nvrh_version": version,
+			"nvrh_version":         version,
+			"nvrh_client_username": currentUser.Username,
+			"nvrh_client_hostname": hostname,
+			"nvrh_client_os": runtime.GOOS,
+			// Assume the UI channel is the next channel.
+			"nvrh_assumed_ui_channel": fmt.Sprintf("%d", nv.ChannelID()+1),
 		},
 	)
 
@@ -555,12 +568,12 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 	allScripts := []string{
 		lua_files.ReadLuaFile("lua/init.lua"),
 
-		lua_files.ReadLuaFile("lua/open_url.lua"),
-		lua_files.ReadLuaFile("lua/prepare_browser_script.lua"),
+		lua_files.ReadLuaFile("lua/rpc_open_url.lua"),
+		lua_files.ReadLuaFile("lua/setup_browser_script.lua"),
 
-		lua_files.ReadLuaFile("lua/tunnel_ports.lua"),
-		lua_files.ReadLuaFile("lua/primary_automap_ports.lua"),
-		lua_files.ReadLuaFile("lua/secondary_automap_ports.lua"),
+		lua_files.ReadLuaFile("lua/rpc_tunnel_port.lua"),
+		lua_files.ReadLuaFile("lua/setup_port_scanner.lua"),
+		lua_files.ReadLuaFile("lua/session_automap_ports.lua"),
 	}
 	scriptsJoined := strings.Join(allScripts, "\n\n")
 
