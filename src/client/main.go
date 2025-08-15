@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -510,6 +511,9 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 }
 
 func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, version string) error {
+	currentUser, _ := user.Current()
+	hostname, _ := os.Hostname()
+
 	nv.SetClientInfo(
 		"nvrh",
 		nvim.ClientVersion{},
@@ -532,7 +536,11 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 			},
 		},
 		nvim.ClientAttributes{
-			"nvrh_version": version,
+			"nvrh_version":         version,
+			"nvrh_client_username": currentUser.Username,
+			"nvrh_client_hostname": hostname,
+			// Assume the UI channel is the next channel.
+			"nvrh_assumed_ui_channel": fmt.Sprintf("%d", nv.ChannelID()+1),
 		},
 	)
 
