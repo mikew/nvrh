@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.0](https://github.com/mikew/nvrh/compare/v0.1.23...v0.2.0) (2025-08-15)
+
+
+### Features
+
+* Blur lines between "primary" and "secondary" ([#46](https://github.com/mikew/nvrh/issues/46)) ([ac6dc1c](https://github.com/mikew/nvrh/commit/ac6dc1c24719e648aabea221313b0f58995a1e55))
+* Extract lua code ([#44](https://github.com/mikew/nvrh/issues/44)) ([3f7f3cc](https://github.com/mikew/nvrh/commit/3f7f3cc80ecee57cb0fdb200a671201ed027108e))
+* No more primary/secondary ([#47](https://github.com/mikew/nvrh/issues/47)) ([737692f](https://github.com/mikew/nvrh/commit/737692f8b3b94a7476bb97ab8f9533af65d172ff))
+* Switch to release-please ([#42](https://github.com/mikew/nvrh/issues/42)) ([1f86779](https://github.com/mikew/nvrh/commit/1f867797d184814175d06fd5561baab952379eff))
+* Use `nvim_set_client_info` ([#45](https://github.com/mikew/nvrh/issues/45)) ([11431b3](https://github.com/mikew/nvrh/commit/11431b3c8da1cd63df58a97148d0f425d07733c6))
+
 ## 0.1.23 (2025-08-09)
 
 
