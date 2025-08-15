@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
@@ -510,6 +511,15 @@ func BuildClientNvimCmd(ctx context.Context, nvrhContext *nvrh_context.NvrhConte
 	return editorCommand
 }
 
+type NvrhServerInfo struct {
+	Os        string `json:"os"`
+	Arch      string `json:"arch"`
+	Username  string `json:"username"`
+	Homedir   string `json:"homedir"`
+	Tmpdir    string `json:"tmpdir"`
+	ShellName string `json:"shell_name"`
+}
+
 func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, version string) error {
 	currentUser, _ := user.Current()
 	hostname, _ := os.Hostname()
@@ -544,6 +554,12 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 			"nvrh_assumed_ui_channel": fmt.Sprintf("%d", nv.ChannelID()+1),
 		},
 	)
+
+	var wut string
+	var nvrhInfo NvrhServerInfo
+	nv.ExecLua(bridge_files.ReadFileWithoutError("lua/determine_server_info.lua"), &wut, nil)
+	json.Unmarshal([]byte(wut), &nvrhInfo)
+	fmt.Printf("nvrh: %+v\n", nvrhInfo)
 
 	nv.RegisterHandler("tunnel-port", func(v *nvim.Nvim, args []string) {
 		if _, ok := nvrhContext.TunneledPorts[args[0]]; ok {
