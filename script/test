@@ -217,9 +217,9 @@ test-invalid-ssh-host() {
 }
 test-invalid-ssh-host
 
-test-invalid-local-editor() {
+test-local-editor-errexit() {
   print-test-description \
-    "Invalid Local Editor" \
+    "Local Editor - Error Exit" \
     "This will exit immediately"
 
   START=$(date +%s)
@@ -245,4 +245,34 @@ test-invalid-local-editor() {
 
   success "Test Passed"
 }
-test-invalid-local-editor
+test-local-editor-errexit
+
+test-local-editor-invalid() {
+  print-test-description \
+    "Invalid Local Editor - Invalid Command" \
+    "This will exit immediately"
+
+  START=$(date +%s)
+  if fresh-nvrh client open --local-editor /please/never/actually/exist "$WORKING_HOST" Work/nvrh-demo-app; then
+    fail "Test failed: expected command exit with error due to invalid local editor"
+  fi
+
+  END=$(date +%s)
+  DIFF=$((END - START))
+  if [ "$DIFF" -gt 5 ]; then
+    fail "Test failed: expected command to exit quickly, took $DIFF seconds"
+  fi
+
+  COUNT=$(get-local-ssh-instance-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 ssh instance, got $COUNT"
+  fi
+
+  COUNT=$(get-remote-leftover-files-count "$WORKING_HOST")
+  if [ "$COUNT" -ne 0 ]; then
+    fail "Test failed: expected 0 leftover files, got $COUNT"
+  fi
+
+  success "Test Passed"
+}
+test-local-editor-invalid
