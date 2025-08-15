@@ -1,11 +1,11 @@
 ---@class NvrhChannelClient
----@field name string
----@field attributes table<string, string>
----@field methods table<string, { NArgs: integer[], async: boolean }>
+---@field name? string
+---@field attributes? table<string, string>
+---@field methods? table<string, { NArgs: [integer, integer], async: boolean }>
 
 ---@class NvrhChannel
 ---@field id integer
----@field client NvrhChannelClient
+---@field client NvrhChannelClient?
 
 if should_initialize then
   _G._nvrh = {
@@ -15,15 +15,17 @@ if should_initialize then
 
   function _G._nvrh.get_nvrh_channels()
     ---@type NvrhChannel[]
-    local channels = {}
+    local nvrh_channels = {}
 
-    for _, channel in ipairs(vim.api.nvim_list_chans()) do
+    ---@type NvrhChannel[]
+    local nvim_channels = vim.api.nvim_list_chans()
+    for _, channel in ipairs(nvim_channels) do
       if channel.client ~= nil and channel.client.name == 'nvrh' then
-        table.insert(channels, channel)
+        table.insert(nvrh_channels, channel)
       end
     end
 
-    return channels
+    return nvrh_channels
   end
 
   vim.env.NVRH_SESSION_ID = session_id

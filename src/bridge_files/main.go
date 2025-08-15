@@ -1,14 +1,14 @@
-package lua_files
+package bridge_files
 
 import (
 	"embed"
 	"log/slog"
 )
 
-//go:embed lua/*.lua
+//go:embed lua/*.lua shell/*
 var luaFolder embed.FS
 
-func ReadLuaFile(filename string) string {
+func ReadFileWithoutError(filename string) string {
 	data, err := luaFolder.ReadFile(filename)
 
 	if err != nil {
