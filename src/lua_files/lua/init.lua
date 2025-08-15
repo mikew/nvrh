@@ -28,10 +28,27 @@ if should_initialize then
 
   vim.env.NVRH_SESSION_ID = session_id
 
+  local function cleanup()
+    os.remove(browser_script_path)
+    os.remove(socket_path)
+  end
+
+  -- Cleanup when exiting Neovim.
   vim.api.nvim_create_autocmd('VimLeavePre', {
     callback = function()
-      os.remove(browser_script_path)
-      os.remove(socket_path)
+      cleanup()
+    end,
+  })
+
+  -- Exit if last client disconnects.
+  vim.api.nvim_create_autocmd('UILeave', {
+    callback = function(args)
+      if #vim.api.nvim_list_uis() == 0 then
+        -- TODO No idea why cleanup is needed here, it should be handled by
+        -- VimLeavePre, and seems to work fine when `qall` is used in nvrh.
+        cleanup()
+        vim.cmd('qall')
+      end
     end,
   })
 end
