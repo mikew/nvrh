@@ -18,11 +18,11 @@ import (
 	"github.com/neovim/go-client/nvim"
 	"github.com/urfave/cli/v2"
 
+	"nvrh/src/bridge_files"
 	nvrh_context "nvrh/src/context"
 	"nvrh/src/exec_helpers"
 	"nvrh/src/go_ssh_ext"
 	"nvrh/src/logger"
-	"nvrh/src/lua_files"
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/nvrh_base_ssh"
 	"nvrh/src/nvrh_binary_ssh"
@@ -539,7 +539,7 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 			"nvrh_version":         version,
 			"nvrh_client_username": currentUser.Username,
 			"nvrh_client_hostname": hostname,
-			"nvrh_client_os": runtime.GOOS,
+			"nvrh_client_os":       runtime.GOOS,
 			// Assume the UI channel is the next channel.
 			"nvrh_assumed_ui_channel": fmt.Sprintf("%d", nv.ChannelID()+1),
 		},
@@ -566,14 +566,20 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 	slog.Info("Preparing remote nvim", "sessionId", nvrhContext.SessionId)
 
 	allScripts := []string{
-		lua_files.ReadLuaFile("lua/init.lua"),
+		bridge_files.ReadFileWithoutError("lua/init.lua"),
 
-		lua_files.ReadLuaFile("lua/rpc_open_url.lua"),
-		lua_files.ReadLuaFile("lua/setup_browser_script.lua"),
+		bridge_files.ReadFileWithoutError("lua/rpc_open_url.lua"),
+		fmt.Sprintf(
+			bridge_files.ReadFileWithoutError("lua/setup_browser_script.lua"),
+			fmt.Sprintf(
+				bridge_files.ReadFileWithoutError("shell/nvrh-browser"),
+				nvrhContext.RemoteSocketOrPort(),
+			),
+		),
 
-		lua_files.ReadLuaFile("lua/rpc_tunnel_port.lua"),
-		lua_files.ReadLuaFile("lua/setup_port_scanner.lua"),
-		lua_files.ReadLuaFile("lua/session_automap_ports.lua"),
+		bridge_files.ReadFileWithoutError("lua/rpc_tunnel_port.lua"),
+		bridge_files.ReadFileWithoutError("lua/setup_port_scanner.lua"),
+		bridge_files.ReadFileWithoutError("lua/session_automap_ports.lua"),
 	}
 	scriptsJoined := strings.Join(allScripts, "\n\n")
 

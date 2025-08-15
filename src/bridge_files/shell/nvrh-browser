@@ -1,0 +1,5 @@
+#!/bin/sh
+
+SOCKET_PATH="%s"
+
+exec nvim --server "$SOCKET_PATH" --remote-expr "v:lua._nvrh.open_url('$1')" > /dev/null
