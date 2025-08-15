@@ -188,11 +188,12 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		var nv *nvim.Nvim
+		didClientFail := false
 
 		// Cleanup on exit
 		defer func() {
 			slog.Info("Cleaning up")
-			closeNvimSocket(nv, true)
+			closeNvimSocket(nv, didClientFail)
 			killAllCmds(nvrhContext.CommandsToKill)
 			os.Remove(nvrhContext.LocalSocketPath)
 			if nvrhContext.SshClient != nil {
@@ -247,11 +248,14 @@ var CliClientOpenCommand = cli.Command{
 		nvrhContext.CommandsToKill = append(nvrhContext.CommandsToKill, clientCmd)
 
 		if err := clientCmd.Start(); err != nil {
+			didClientFail = true
 			return fmt.Errorf("failed to start local nvim: %w", err)
 		}
 
 		go func() {
-			done <- clientCmd.Wait()
+			err := clientCmd.Wait()
+			didClientFail = err != nil
+			done <- err
 		}()
 
 		select {
