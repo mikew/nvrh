@@ -539,6 +539,7 @@ func prepareRemoteNvim(nvrhContext *nvrh_context.NvrhContext, nv *nvim.Nvim, ver
 			"nvrh_version":         version,
 			"nvrh_client_username": currentUser.Username,
 			"nvrh_client_hostname": hostname,
+			"nvrh_client_os": runtime.GOOS,
 			// Assume the UI channel is the next channel.
 			"nvrh_assumed_ui_channel": fmt.Sprintf("%d", nv.ChannelID()+1),
 		},
