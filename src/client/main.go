@@ -179,9 +179,7 @@ var CliClientOpenCommand = cli.Command{
 		}()
 
 		siDone := make(chan error, 1)
-		min := 1025
-		max := 65535
-		randomPort := rand.IntN(max-min) + min
+		randomPort := getRandomPort()
 
 		siTunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
 			Mode:         "port",
@@ -193,8 +191,12 @@ var CliClientOpenCommand = cli.Command{
 		// Start server info nvim instance.
 		slog.Info("Starting server info nvim instance")
 		go func() {
+			// Not quoting here because Powershell doesn't like it, and we don't know
+			// what shell we're using at this point.
+			nvimCmd := strings.Join(nvrhContext.NvimCmd, " ")
+
 			siDone <- nvrhContext.SshClient.Run(
-				fmt.Sprintf("nvim -u NONE --headless --listen \"%s\"", siTunnelInfo.RemoteBoundToIp()),
+				fmt.Sprintf("%s -u NONE --headless --listen \"%s\"", nvimCmd, siTunnelInfo.RemoteBoundToIp()),
 				siTunnelInfo,
 			)
 		}()
@@ -240,9 +242,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		if nvrhContext.ShouldUsePorts {
-			min := 1025
-			max := 65535
-			randomPort := rand.IntN(max-min) + min
+			randomPort := getRandomPort()
 
 			nvrhContext.LocalPortNumber = randomPort
 			nvrhContext.RemotePortNumber = randomPort
@@ -256,18 +256,16 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		if nvrhContext.ShouldUsePorts {
-			tunnelInfo.Mode = "port"
-			tunnelInfo.LocalSocket = fmt.Sprintf("%d", nvrhContext.LocalPortNumber)
-			tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.RemotePortNumber)
+			tunnelInfo.SwitchToPorts(nvrhContext.LocalPortNumber, nvrhContext.RemotePortNumber)
 		}
 
 		// Start remote nvim
 		go func() {
 			var cmdTemplate string
 			if nvrhContext.ServerInfo.ShellName == "powershell" {
-				cmdTemplate = `cd "%s" && %s`
+				cmdTemplate = `cd "%s"; %s`
 			} else if nvrhContext.ServerInfo.ShellName == "cmd" {
-				cmdTemplate = `cd /d "%s" && %s`
+				cmdTemplate = `cmd /c cd /d "%s" && %s`
 			} else {
 				cmdTemplate = `exec "$SHELL" -i -c 'cd "%s" && %s'`
 			}
@@ -432,9 +430,7 @@ var CliClientReconnectCommand = cli.Command{
 		nvrhContext.SshClient = sshClient
 
 		if nvrhContext.ShouldUsePorts {
-			min := 1025
-			max := 65535
-			randomPort := rand.IntN(max-min) + min
+			randomPort := getRandomPort()
 
 			portNumberString := c.Args().Get(2)
 			portNumber := 0
@@ -478,9 +474,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		if nvrhContext.ShouldUsePorts {
-			tunnelInfo.Mode = "port"
-			tunnelInfo.LocalSocket = fmt.Sprintf("%d", nvrhContext.LocalPortNumber)
-			tunnelInfo.RemoteSocket = fmt.Sprintf("%d", nvrhContext.RemotePortNumber)
+			tunnelInfo.SwitchToPorts(nvrhContext.LocalPortNumber, nvrhContext.RemotePortNumber)
 		}
 
 		go func() {
@@ -766,4 +760,10 @@ func getSshClient(
 		Ctx:     nvrhContext,
 		SshPath: sshPath,
 	}), nil
+}
+
+func getRandomPort() int {
+	min := 1025
+	max := 65535
+	return rand.IntN(max-min) + min
 }

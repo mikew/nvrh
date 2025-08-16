@@ -36,3 +36,15 @@ func (ti *SshTunnelInfo) RemoteBoundToIp() string {
 
 	return fmt.Sprintf("%s:%s", ip, ti.RemoteSocket)
 }
+
+func (ti *SshTunnelInfo) SwitchToPorts(localPort int, remotePort int) {
+	ti.Mode = "port"
+	ti.LocalSocket = fmt.Sprintf("%d", localPort)
+	ti.RemoteSocket = fmt.Sprintf("%d", remotePort)
+}
+
+func (ti *SshTunnelInfo) SwitchToSockets(localSocket string, remoteSocket string) {
+	ti.Mode = "unix"
+	ti.LocalSocket = localSocket
+	ti.RemoteSocket = remoteSocket
+}

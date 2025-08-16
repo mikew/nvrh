@@ -46,12 +46,12 @@ local function get_arch()
   elseif arch:match('^armv7') or arch:match('^armv6') then
     return 'arm'
   elseif
-    arch == 'i386'
-    or arch == 'i486'
-    or arch == 'i586'
-    or arch == 'i686'
-    or arch == 'i786'
-    or arch == 'x86'
+      arch == 'i386'
+      or arch == 'i486'
+      or arch == 'i586'
+      or arch == 'i686'
+      or arch == 'i786'
+      or arch == 'x86'
   then
     return '386'
   elseif arch == 'ppc64le' then
@@ -64,12 +64,12 @@ local function get_arch()
 end
 
 local function get_shell_name()
-  if vim.env.COMSPEC and vim.env.PROMPT then
-    return 'cmd'
-  end
-
   if vim.env.PSMODULEPATH then
     return 'powershell'
+  end
+
+  if vim.env.COMSPEC and vim.env.PROMPT then
+    return 'cmd'
   end
 
   local shell = (vim.env.SHELL or passwd.shell or ''):lower()

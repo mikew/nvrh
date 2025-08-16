@@ -60,7 +60,10 @@ func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext, ti *ssh_tun
 		envPairsString = strings.Join(formattedEnvPairs, " ")
 	}
 
-	nvimCmd := strings.Join(nvrhContext.NvimCmd, " ")
+	nvimCmd := `"` + strings.Join(nvrhContext.NvimCmd, `" "`) + `"`
+	if nvrhContext.ServerInfo.ShellName == "powershell" {
+		nvimCmd = "& " + nvimCmd
+	}
 
 	return fmt.Sprintf(
 		"%s %s --headless --listen \"%s\"",
