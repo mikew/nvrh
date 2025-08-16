@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.1](https://github.com/mikew/nvrh/compare/v0.2.0...v0.2.1) (2025-08-16)
+
+
+### Bug Fixes
+
+* `lua_files` -&gt; `bridge_files` due to shell scripts ([#48](https://github.com/mikew/nvrh/issues/48)) ([92e4e92](https://github.com/mikew/nvrh/commit/92e4e9249d80d95cc8023f151670075849b8945d))
+
 ## [0.2.0](https://github.com/mikew/nvrh/compare/v0.1.23...v0.2.0) (2025-08-15)
 
 
