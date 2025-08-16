@@ -5,7 +5,7 @@ import (
 	"log/slog"
 )
 
-//go:embed lua/*.lua shell/*
+//go:embed lua/* shell/*
 var luaFolder embed.FS
 
 func ReadFileWithoutError(filename string) string {

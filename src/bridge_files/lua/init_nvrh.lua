@@ -11,6 +11,9 @@ if should_initialize then
   _G._nvrh = {
     ---@type { [string]: boolean }
     mapped_ports = {},
+
+    ---@type NvrhServerInfo
+    server_info = vim.json.decode(nvrh_server_info),
   }
 
   function _G._nvrh.get_nvrh_channels()
