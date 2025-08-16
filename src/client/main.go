@@ -203,6 +203,50 @@ var CliClientOpenCommand = cli.Command{
 			}
 		}()
 
+		siDone := make(chan error, 1)
+		go func() {
+			siTunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
+				Mode:   "port",
+				Public: false,
+				// LocalSocket:  fmt.Sprintf("%d", nvrhContext.LocalPortNumber),
+				// RemoteSocket: fmt.Sprintf("%d", nvrhContext.RemotePortNumber),
+				LocalSocket:  "6666",
+				RemoteSocket: "6666",
+			}
+
+			siDone <- nvrhContext.SshClient.Run(
+				fmt.Sprintf("/home/linuxbrew/.linuxbrew/bin/nvim -u NONE --headless --listen \"localhost:%s\"", siTunnelInfo.RemoteSocket),
+				siTunnelInfo,
+			)
+		}()
+
+		go func() {
+			siNv, err := nvim_helpers.WaitForNvim2(ctx, "localhost:6666")
+
+			if err != nil {
+				slog.Error("Error while getting server info", "err", err)
+				return
+			}
+
+			fmt.Print("somehow can get server info now???")
+
+			// Need to kill this nvim instance.
+			siNv.ExecLua("vim.cmd('qall!')", nil, nil)
+
+			siDone <- nil
+		}()
+
+		select {
+		case <-ctx.Done():
+			slog.Warn("Interrupted by user")
+			return ctx.Err()
+		case err := <-siDone:
+			if err != nil {
+				slog.Error("Error while getting server info", "err", err)
+				return err
+			}
+		}
+
 		// Start remote nvim
 		go func() {
 			tunnelInfo := &ssh_tunnel_info.SshTunnelInfo{

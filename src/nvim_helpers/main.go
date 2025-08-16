@@ -40,6 +40,34 @@ func WaitForNvim(ctx context.Context, nvrhContext *nvrh_context.NvrhContext) (*n
 	}
 }
 
+func WaitForNvim2(ctx context.Context, socketOrPort string) (*nvim.Nvim, error) {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeout := time.After(10 * time.Second) // optional timeout
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+
+		case <-timeout:
+			return nil, errors.New("Timed out waiting for nvim")
+
+		case <-ticker.C:
+			nv, err := nvim.Dial(socketOrPort)
+			if err != nil {
+				continue
+			}
+
+			if _, err := nv.APIInfo(); err != nil {
+				continue
+			}
+
+			return nv, nil
+		}
+	}
+}
+
 func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext) string {
 	envPairsString := ""
 	if len(nvrhContext.RemoteEnv) > 0 {
