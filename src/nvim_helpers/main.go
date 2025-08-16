@@ -17,7 +17,7 @@ func WaitForNvim(ctx context.Context, ti *ssh_tunnel_info.SshTunnelInfo) (*nvim.
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	timeout := time.After(10 * time.Second) // optional timeout
+	timeout := time.After(10 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
@@ -44,7 +44,20 @@ func WaitForNvim(ctx context.Context, ti *ssh_tunnel_info.SshTunnelInfo) (*nvim.
 func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext, ti *ssh_tunnel_info.SshTunnelInfo) string {
 	envPairsString := ""
 	if len(nvrhContext.RemoteEnv) > 0 {
-		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
+		var formattedEnvPairs []string
+		for _, envPair := range nvrhContext.RemoteEnv {
+			if nvrhContext.ServerInfo.ShellName == "powershell" {
+				// FOO=BAR -> $env:FOO='BAR';
+				formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("$env:%s", strings.Replace(envPair, "=", "='", 1)+"';"))
+			} else if nvrhContext.ServerInfo.ShellName == "cmd" {
+				// FOO=BAR -> set FOO=BAR&&
+				formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("set %s&&", envPair))
+			} else {
+				// FOO=BAR -> 'FOO=BAR'
+				formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("'%s'", envPair))
+			}
+		}
+		envPairsString = strings.Join(formattedEnvPairs, " ")
 	}
 
 	nvimCmd := strings.Join(nvrhContext.NvimCmd, " ")

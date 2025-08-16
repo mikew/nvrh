@@ -12,25 +12,29 @@ type NvrhContext struct {
 	Endpoint        *ssh_endpoint.SshEndpoint
 	RemoteDirectory string
 
-	LocalSocketPath  string
+	// Deprecated: Might not need to be on the context.
+	LocalSocketPath string
+	// Deprecated: Might not need to be on the context.
 	RemoteSocketPath string
-	ShouldUsePorts   bool
-	LocalPortNumber  int
+	// Deprecated: Might not need to be on the context.
+	ShouldUsePorts bool
+	// Deprecated: Might not need to be on the context.
+	LocalPortNumber int
+	// Deprecated: Might not need to be on the context.
 	RemotePortNumber int
-	AutomapPorts     bool
+
+	AutomapPorts bool
 
 	RemoteEnv   []string
 	LocalEditor []string
-
-	BrowserScriptPath string
 
 	CommandsToKill []*exec.Cmd
 
 	Debug bool
 
-	SshPath   string
 	SshClient nvrh_base_ssh.BaseNvrhSshClient
-	SshArgs   []string
+	// Deprecated: Might not need to be on the context.
+	SshArgs []string
 
 	NvimCmd []string
 

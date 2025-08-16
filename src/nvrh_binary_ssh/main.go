@@ -11,7 +11,8 @@ import (
 )
 
 type NvrhBinarySshClient struct {
-	Ctx *context.NvrhContext
+	Ctx     *context.NvrhContext
+	SshPath string
 }
 
 func (c *NvrhBinarySshClient) Close() error {
@@ -34,7 +35,7 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 	slog.Debug("Running command via SSH", "command", command)
 
 	sshCommand := exec.Command(
-		c.Ctx.SshPath,
+		c.SshPath,
 		args...,
 	)
 
@@ -57,7 +58,7 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 
 func (c *NvrhBinarySshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
 	sshCommand := exec.Command(
-		c.Ctx.SshPath,
+		c.SshPath,
 		"-NL",
 		bindTunnelInfo(tunnelInfo),
 		c.Ctx.Endpoint.Given,
