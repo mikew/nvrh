@@ -11,9 +11,9 @@ type SshTunnelInfo struct {
 	Public       bool
 }
 
-func (ti *SshTunnelInfo) BoundToIp() string {
+func (ti *SshTunnelInfo) LocalBoundToIp() string {
 	if ti.Mode == "unix" {
-		return fmt.Sprintf("%s:%s", ti.LocalSocket, ti.RemoteSocket)
+		return ti.LocalSocket
 	}
 
 	ip := "localhost"
@@ -21,5 +21,18 @@ func (ti *SshTunnelInfo) BoundToIp() string {
 		ip = "0.0.0.0"
 	}
 
-	return fmt.Sprintf("%s:%s:%s", ti.LocalSocket, ip, ti.RemoteSocket)
+	return fmt.Sprintf("%s:%s", ip, ti.LocalSocket)
+}
+
+func (ti *SshTunnelInfo) RemoteBoundToIp() string {
+	if ti.Mode == "unix" {
+		return ti.RemoteSocket
+	}
+
+	ip := "localhost"
+	if ti.Public {
+		ip = "0.0.0.0"
+	}
+
+	return fmt.Sprintf("%s:%s", ip, ti.RemoteSocket)
 }

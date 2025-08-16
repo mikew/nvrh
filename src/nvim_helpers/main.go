@@ -10,9 +10,10 @@ import (
 	"github.com/neovim/go-client/nvim"
 
 	nvrh_context "nvrh/src/context"
+	"nvrh/src/ssh_tunnel_info"
 )
 
-func WaitForNvim(ctx context.Context, nvrhContext *nvrh_context.NvrhContext) (*nvim.Nvim, error) {
+func WaitForNvim(ctx context.Context, ti *ssh_tunnel_info.SshTunnelInfo) (*nvim.Nvim, error) {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -26,7 +27,7 @@ func WaitForNvim(ctx context.Context, nvrhContext *nvrh_context.NvrhContext) (*n
 			return nil, errors.New("Timed out waiting for nvim")
 
 		case <-ticker.C:
-			nv, err := nvim.Dial(nvrhContext.LocalSocketOrPort())
+			nv, err := nvim.Dial(ti.LocalBoundToIp())
 			if err != nil {
 				continue
 			}
@@ -40,35 +41,7 @@ func WaitForNvim(ctx context.Context, nvrhContext *nvrh_context.NvrhContext) (*n
 	}
 }
 
-func WaitForNvim2(ctx context.Context, socketOrPort string) (*nvim.Nvim, error) {
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-
-	timeout := time.After(10 * time.Second) // optional timeout
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-
-		case <-timeout:
-			return nil, errors.New("Timed out waiting for nvim")
-
-		case <-ticker.C:
-			nv, err := nvim.Dial(socketOrPort)
-			if err != nil {
-				continue
-			}
-
-			if _, err := nv.APIInfo(); err != nil {
-				continue
-			}
-
-			return nv, nil
-		}
-	}
-}
-
-func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext) string {
+func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext, ti *ssh_tunnel_info.SshTunnelInfo) string {
 	envPairsString := ""
 	if len(nvrhContext.RemoteEnv) > 0 {
 		envPairsString = strings.Join(nvrhContext.RemoteEnv, " ")
@@ -80,6 +53,6 @@ func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext) string {
 		"%s %s --headless --listen \"%s\"",
 		envPairsString,
 		nvimCmd,
-		nvrhContext.RemoteSocketOrPort(),
+		ti.RemoteBoundToIp(),
 	)
 }
