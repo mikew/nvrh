@@ -194,7 +194,7 @@ var CliClientOpenCommand = cli.Command{
 		slog.Info("Starting server info nvim instance")
 		go func() {
 			siDone <- nvrhContext.SshClient.Run(
-				fmt.Sprintf("/home/linuxbrew/.linuxbrew/bin/nvim -u NONE --headless --listen \"%s\"", siTunnelInfo.RemoteBoundToIp()),
+				fmt.Sprintf("nvim -u NONE --headless --listen \"%s\"", siTunnelInfo.RemoteBoundToIp()),
 				siTunnelInfo,
 			)
 		}()
