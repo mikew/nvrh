@@ -265,9 +265,9 @@ var CliClientOpenCommand = cli.Command{
 		go func() {
 			var cmdTemplate string
 			if nvrhContext.ServerInfo.ShellName == "powershell" {
-				cmdTemplate = `cd \"%s\" && %s`
+				cmdTemplate = `cd "%s" && %s`
 			} else if nvrhContext.ServerInfo.ShellName == "cmd" {
-				cmdTemplate = `cd /d \"%s\" && %s`
+				cmdTemplate = `cd /d "%s" && %s`
 			} else {
 				cmdTemplate = `exec "$SHELL" -i -c 'cd "%s" && %s'`
 			}
