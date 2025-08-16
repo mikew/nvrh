@@ -5,7 +5,7 @@ WORKING_HOST="$1"
 
 fresh-nvrh() {
   NVRH_CLIENT_DEBUG=false \
-  NVRH_CLIENT_NVIM_CMD="nvim,-u,NONE" \
+  NVRH_CLIENT_NVIM_CMD="/home/linuxbrew/.linuxbrew/bin/nvim,-u,NONE" \
   env \
     -u NVRH_CLIENT_SSH_ARG \
     -u NVRH_CLIENT_SERVER_ENV \
