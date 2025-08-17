@@ -216,7 +216,6 @@ var CliClientOpenCommand = cli.Command{
 			json.Unmarshal([]byte(serverInfoString), &serverInfo)
 
 			nvrhContext.ServerInfo = serverInfo
-			fmt.Printf("%+v\n", nvrhContext.ServerInfo)
 
 			siNv.ExecLua("vim.cmd('qall!')", nil, nil)
 			siNv.Close()
