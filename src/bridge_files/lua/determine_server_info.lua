@@ -64,19 +64,19 @@ local function get_arch()
 end
 
 local function get_shell_name()
+  local shell = (vim.env.SHELL or passwd.shell or ''):lower()
+  if shell:match('bash') then
+    return 'bash'
+  elseif shell:match('zsh') then
+    return 'zsh'
+  end
+
   if vim.env.PSMODULEPATH then
     return 'powershell'
   end
 
   if vim.env.COMSPEC and vim.env.PROMPT then
     return 'cmd'
-  end
-
-  local shell = (vim.env.SHELL or passwd.shell or ''):lower()
-  if shell:match('bash') then
-    return 'bash'
-  elseif shell:match('zsh') then
-    return 'zsh'
   end
 
   return 'unknown'
