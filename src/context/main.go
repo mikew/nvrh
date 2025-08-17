@@ -1,7 +1,6 @@
 package context
 
 import (
-	"fmt"
 	"os/exec"
 
 	"nvrh/src/nvrh_base_ssh"
@@ -13,46 +12,42 @@ type NvrhContext struct {
 	Endpoint        *ssh_endpoint.SshEndpoint
 	RemoteDirectory string
 
-	LocalSocketPath  string
+	// Deprecated: Might not need to be on the context.
+	LocalSocketPath string
+	// Deprecated: Might not need to be on the context.
 	RemoteSocketPath string
-	ShouldUsePorts   bool
-	LocalPortNumber  int
+	// Deprecated: Might not need to be on the context.
+	ShouldUsePorts bool
+	// Deprecated: Might not need to be on the context.
+	LocalPortNumber int
+	// Deprecated: Might not need to be on the context.
 	RemotePortNumber int
-	AutomapPorts     bool
+
+	AutomapPorts bool
 
 	RemoteEnv   []string
 	LocalEditor []string
-
-	BrowserScriptPath string
 
 	CommandsToKill []*exec.Cmd
 
 	Debug bool
 
-	SshPath   string
 	SshClient nvrh_base_ssh.BaseNvrhSshClient
-	SshArgs   []string
+	// Deprecated: Might not need to be on the context.
+	SshArgs []string
 
 	NvimCmd []string
 
 	TunneledPorts map[string]bool
+
+	ServerInfo *NvrhServerInfo
 }
 
-func (nc *NvrhContext) LocalSocketOrPort() string {
-	if nc.ShouldUsePorts {
-		// nvim-qt, at least on Windows (and might have something to do with
-		// running in a VM) seems to prefer `127.0.0.1` to `0.0.0.0`, and I think
-		// that's safe on other OSes.
-		return fmt.Sprintf("localhost:%d", nc.LocalPortNumber)
-	}
-
-	return nc.LocalSocketPath
-}
-
-func (nc *NvrhContext) RemoteSocketOrPort() string {
-	if nc.ShouldUsePorts {
-		return fmt.Sprintf("localhost:%d", nc.RemotePortNumber)
-	}
-
-	return nc.RemoteSocketPath
+type NvrhServerInfo struct {
+	Os        string `json:"os"`
+	Arch      string `json:"arch"`
+	Username  string `json:"username"`
+	Homedir   string `json:"homedir"`
+	Tmpdir    string `json:"tmpdir"`
+	ShellName string `json:"shell_name"`
 }
