@@ -490,7 +490,7 @@ var CliClientReconnectCommand = cli.Command{
 
 		var serverInfoString string
 		var serverInfo *nvrh_context.NvrhServerInfo
-		nv.ExecLua("return vim.json.encode(_G._nvrh.nvrh_server_info)", &serverInfoString, nil)
+		nv.ExecLua("return vim.json.encode(_G._nvrh.server_info)", &serverInfoString, nil)
 		json.Unmarshal([]byte(serverInfoString), &serverInfo)
 		nvrhContext.ServerInfo = serverInfo
 
