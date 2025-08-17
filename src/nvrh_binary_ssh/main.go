@@ -59,7 +59,7 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 func (c *NvrhBinarySshClient) TunnelSocket(tunnelInfo *ssh_tunnel_info.SshTunnelInfo) {
 	sshCommand := exec.Command(
 		c.SshPath,
-		"-NL",
+		"-nNTL",
 		bindTunnelInfo(tunnelInfo),
 		c.Ctx.Endpoint.Given,
 	)
