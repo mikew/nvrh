@@ -217,6 +217,44 @@ var CliClientOpenCommand = cli.Command{
 
 			nvrhContext.ServerInfo = serverInfo
 
+			if nvrhContext.ServerInfo.Os == "windows" {
+				nvrhContext.WindowsLauncherPath = fmt.Sprintf(
+					`%s\nvim-launcher-%s.bat`,
+					nvrhContext.ServerInfo.Tmpdir,
+					nvrhContext.SessionId,
+				)
+				nvimLauncherScript := bridge_files.ReadFileWithoutError("shell/nvim-launcher.bat")
+
+				cdPortion := ""
+				if nvrhContext.RemoteDirectory != "" {
+					cdPortion = fmt.Sprintf("cd /d %s", nvrhContext.RemoteDirectory)
+				}
+
+				envPortion := ""
+				for _, envPair := range nvrhContext.RemoteEnv {
+					envPortion += fmt.Sprintf("set %s\n", envPair)
+				}
+
+				nvimLauncherScript = fmt.Sprintf(
+					nvimLauncherScript,
+					envPortion,
+					cdPortion,
+					"nvim",
+				)
+
+				err := siNv.ExecLua(
+					bridge_files.ReadFileWithoutError("lua/setup_nvim_launcher.lua"),
+					nil,
+					nvimLauncherScript,
+					nvrhContext.WindowsLauncherPath,
+				)
+
+				if err != nil {
+					siDone <- err
+					return
+				}
+			}
+
 			siNv.ExecLua("vim.cmd('qall!')", nil, nil)
 			siNv.Close()
 

@@ -41,6 +41,8 @@ type NvrhContext struct {
 	TunneledPorts map[string]bool
 
 	ServerInfo *NvrhServerInfo
+
+	WindowsLauncherPath string
 }
 
 type NvrhServerInfo struct {

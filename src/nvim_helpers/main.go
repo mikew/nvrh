@@ -42,6 +42,14 @@ func WaitForNvim(ctx context.Context, ti *ssh_tunnel_info.SshTunnelInfo) (*nvim.
 }
 
 func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext, ti *ssh_tunnel_info.SshTunnelInfo) string {
+	if nvrhContext.ServerInfo.Os == "windows" {
+		if nvrhContext.ServerInfo.ShellName == "powershell" || nvrhContext.ServerInfo.ShellName == "cmd" {
+			return nvrhContext.WindowsLauncherPath
+		} else {
+			return fmt.Sprintf(`/tmp/`)
+		}
+	}
+
 	envPairsString := ""
 	if len(nvrhContext.RemoteEnv) > 0 {
 		var formattedEnvPairs []string
