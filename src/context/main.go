@@ -14,16 +14,11 @@ type NvrhContext struct {
 
 	AutomapPorts bool
 
-	RemoteEnv   []string
-	LocalEditor []string
-
 	CommandsToKill []*exec.Cmd
 
 	Debug bool
 
 	SshClient nvrh_base_ssh.BaseNvrhSshClient
-	// Deprecated: Might not need to be on the context.
-	SshArgs []string
 
 	NvimCmd []string
 

@@ -139,9 +139,6 @@ var CliClientOpenCommand = cli.Command{
 			Endpoint:        endpoint,
 			RemoteDirectory: c.Args().Get(1),
 
-			RemoteEnv:   c.StringSlice("server-env"),
-			LocalEditor: c.StringSlice("local-editor"),
-
 			AutomapPorts: c.Bool("enable-automap-ports"),
 
 			Debug: isDebug,
@@ -149,11 +146,16 @@ var CliClientOpenCommand = cli.Command{
 			TunneledPorts: make(map[string]bool),
 
 			NvimCmd: c.StringSlice("nvim-cmd"),
-
-			SshArgs: c.StringSlice("ssh-arg"),
 		}
 
-		shouldUsePorts := c.Bool("use-ports")
+		remoteEnv := c.StringSlice("server-env")
+		localEditor := c.StringSlice("local-editor")
+		sshArgs := c.StringSlice("ssh-arg")
+
+		shouldUsePorts := runtime.GOOS == "windows"
+		if c.IsSet("use-ports") {
+			shouldUsePorts = c.Bool("use-ports")
+		}
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId))
 
@@ -164,7 +166,7 @@ var CliClientOpenCommand = cli.Command{
 		var tunnelInfo *ssh_tunnel_info.SshTunnelInfo
 
 		// Setup SSH client
-		sshClient, sshClientErr := getSshClient(nvrhContext, endpoint, sshPath)
+		sshClient, sshClientErr := getSshClient(nvrhContext, endpoint, sshPath, sshArgs)
 		if sshClientErr != nil {
 			return sshClientErr
 		}
@@ -246,7 +248,7 @@ var CliClientOpenCommand = cli.Command{
 					cdPortion = fmt.Sprintf("cd /d %s", nvrhContext.RemoteDirectory)
 				}
 
-				envPortion := nvim_helpers.BuildRemoteEnvString(nvrhContext.RemoteEnv, "bat")
+				envPortion := nvim_helpers.BuildRemoteEnvString(remoteEnv, "bat")
 
 				nvimCmd := nvim_helpers.BuildRemoteCommandString(
 					nvrhContext.NvimCmd,
@@ -323,7 +325,7 @@ var CliClientOpenCommand = cli.Command{
 					nvrhContext.NvimCmd,
 					nvrhContext.ServerInfo.ShellName,
 					nvrhContext.RemoteDirectory,
-					nvrhContext.RemoteEnv,
+					remoteEnv,
 					tunnelInfo,
 				)
 			}
@@ -346,7 +348,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		// Start local client
-		clientCmd := BuildClientNvimCmd(ctx, nvrhContext, tunnelInfo)
+		clientCmd := BuildClientNvimCmd(ctx, localEditor, tunnelInfo)
 		if nvrhContext.Debug {
 			clientCmd.Stdout = os.Stdout
 			clientCmd.Stderr = os.Stderr
@@ -455,22 +457,23 @@ var CliClientReconnectCommand = cli.Command{
 			Endpoint:  endpoint,
 			// RemoteDirectory: c.Args().Get(1),
 
-			// RemoteEnv:   c.StringSlice("server-env"),
-			LocalEditor: c.StringSlice("local-editor"),
-
 			// TODO Handle mapping ports better with multiple clients.
-			// AutomapPorts:     c.Bool("enable-automap-ports"),
+			// AutomapPorts: c.Bool("enable-automap-ports"),
 
 			Debug: isDebug,
 
 			TunneledPorts: make(map[string]bool),
 
 			// NvimCmd: c.StringSlice("nvim-cmd"),
-
-			SshArgs: c.StringSlice("ssh-arg"),
 		}
 
-		shouldUsePorts := c.Bool("use-ports")
+		localEditor := c.StringSlice("local-editor")
+		sshArgs := c.StringSlice("ssh-arg")
+
+		shouldUsePorts := runtime.GOOS == "windows"
+		if c.IsSet("use-ports") {
+			shouldUsePorts = c.Bool("use-ports")
+		}
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s-%s", sessionId, randomId))
 
@@ -479,7 +482,7 @@ var CliClientReconnectCommand = cli.Command{
 		remotePortNumber := randomPort
 
 		// Setup SSH client
-		sshClient, sshClientErr := getSshClient(nvrhContext, endpoint, sshPath)
+		sshClient, sshClientErr := getSshClient(nvrhContext, endpoint, sshPath, sshArgs)
 		if sshClientErr != nil {
 			return sshClientErr
 		}
@@ -552,7 +555,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		// Start local client
-		clientCmd := BuildClientNvimCmd(ctx, nvrhContext, tunnelInfo)
+		clientCmd := BuildClientNvimCmd(ctx, localEditor, tunnelInfo)
 		if nvrhContext.Debug {
 			clientCmd.Stdout = os.Stdout
 			clientCmd.Stderr = os.Stderr
@@ -584,11 +587,11 @@ var CliClientReconnectCommand = cli.Command{
 
 func BuildClientNvimCmd(
 	ctx context.Context,
-	nvrhContext *nvrh_context.NvrhContext,
+	cmd []string,
 	ti *ssh_tunnel_info.SshTunnelInfo,
 ) *exec.Cmd {
-	replacedArgs := make([]string, len(nvrhContext.LocalEditor))
-	for i, arg := range nvrhContext.LocalEditor {
+	replacedArgs := make([]string, len(cmd))
+	for i, arg := range cmd {
 		replacedArgs[i] = strings.ReplaceAll(arg, "{{SOCKET_PATH}}", ti.LocalBoundToIp())
 	}
 
@@ -794,6 +797,7 @@ func getSshClient(
 	nvrhContext *nvrh_context.NvrhContext,
 	endpoint *ssh_endpoint.SshEndpoint,
 	sshPath string,
+	sshArgs []string,
 ) (nvrh_base_ssh.BaseNvrhSshClient, error) {
 	if sshPath == "internal" {
 		sshClient, err := go_ssh_ext.GetSshClientForEndpoint(endpoint)
@@ -810,6 +814,7 @@ func getSshClient(
 	return nvrh_base_ssh.BaseNvrhSshClient(&nvrh_binary_ssh.NvrhBinarySshClient{
 		Ctx:     nvrhContext,
 		SshPath: sshPath,
+		SshArgs: sshArgs,
 	}), nil
 }
 

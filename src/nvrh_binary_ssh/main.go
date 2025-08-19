@@ -13,6 +13,7 @@ import (
 type NvrhBinarySshClient struct {
 	Ctx     *context.NvrhContext
 	SshPath string
+	SshArgs []string
 }
 
 func (c *NvrhBinarySshClient) Close() error {
@@ -26,8 +27,8 @@ func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.Ss
 		args = append(args, "-L", bindTunnelInfo(tunnelInfo))
 	}
 
-	if len(c.Ctx.SshArgs) > 0 {
-		args = append(args, c.Ctx.SshArgs...)
+	if len(c.SshArgs) > 0 {
+		args = append(args, c.SshArgs...)
 	}
 
 	args = append(args, "-t", c.Ctx.Endpoint.Given, "--", command)
