@@ -241,34 +241,18 @@ var CliClientOpenCommand = cli.Command{
 					Public:       false,
 				}
 
-				nvimLauncherScript := bridge_files.ReadFileWithoutError("shell/nvim-launcher.bat")
-
-				cdPortion := ""
-				if nvrhContext.RemoteDirectory != "" {
-					cdPortion = fmt.Sprintf("cd /d %s", nvrhContext.RemoteDirectory)
-				}
-
-				envPortion := nvim_helpers.BuildRemoteEnvString(remoteEnv, "bat")
-
 				nvimCmd := nvim_helpers.BuildRemoteCommandString(
 					nvrhContext.NvimCmd,
-					"cmd",
-					"",
-					[]string{},
+					"bat",
+					nvrhContext.RemoteDirectory,
+					remoteEnv,
 					tunnelInfo,
-				)
-
-				nvimLauncherScript = fmt.Sprintf(
-					nvimLauncherScript,
-					envPortion,
-					cdPortion,
-					nvimCmd,
 				)
 
 				err := siNv.ExecLua(
 					bridge_files.ReadFileWithoutError("lua/setup_nvim_launcher.lua"),
 					nil,
-					nvimLauncherScript,
+					nvimCmd,
 					nvrhContext.WindowsLauncherPath,
 				)
 
@@ -702,6 +686,7 @@ func prepareRemoteNvim(
 		browserScriptPath,
 		nvrhContext.AutomapPorts,
 		string(marshalled),
+		nvrhContext.WindowsLauncherPath,
 	)
 
 	if err != nil {

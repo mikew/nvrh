@@ -88,7 +88,27 @@ func BuildRemoteCommandString(
 
 		parts = append(parts, nvimCmdQuoted)
 
-		return strings.Join(parts, "; ")
+		return strings.Join(parts, " && ")
+
+	case "bat":
+		parts := []string{
+			"@echo off",
+		}
+
+		if remoteDirectory != "" {
+			parts = append(parts, fmt.Sprintf(
+				`cd /d "%s"`,
+				remoteDirectory,
+			))
+		}
+
+		if len(remoteEnv) > 0 {
+			parts = append(parts, BuildRemoteEnvString(remoteEnv, shellName))
+		}
+
+		parts = append(parts, fmt.Sprintf(`start "" /WAIT %s`, nvimCmdQuoted))
+
+		return strings.Join(parts, "\n\n")
 	}
 
 	parts := []string{}
