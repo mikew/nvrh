@@ -142,7 +142,6 @@ var CliClientOpenCommand = cli.Command{
 			RemoteEnv:   c.StringSlice("server-env"),
 			LocalEditor: c.StringSlice("local-editor"),
 
-
 			AutomapPorts: c.Bool("enable-automap-ports"),
 
 			Debug: isDebug,
@@ -294,11 +293,6 @@ var CliClientOpenCommand = cli.Command{
 				return err
 			}
 		}
-
-		// Prep with new server info.
-		// if nvrhContext.ServerInfo.Os == "windows" {
-		// 	nvrhContext.ShouldUsePorts = true
-		// }
 
 		// Even though this happens in the Windows Server path, we still need a
 		// check here in case that path isn't hit.
@@ -463,7 +457,6 @@ var CliClientReconnectCommand = cli.Command{
 
 			// RemoteEnv:   c.StringSlice("server-env"),
 			LocalEditor: c.StringSlice("local-editor"),
-
 
 			// TODO Handle mapping ports better with multiple clients.
 			// AutomapPorts:     c.Bool("enable-automap-ports"),
