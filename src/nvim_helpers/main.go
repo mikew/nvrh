@@ -173,7 +173,7 @@ func BuildRemoteEnvString(envPairs []string, shellName string) string {
 	var formattedEnvPairs []string
 
 	for _, envPair := range envPairs {
-		// FOO=BAR -> FOO='BAR'
+		// FOO=BAR -> FOO="BAR"
 		parts := strings.SplitN(envPair, "=", 2)
 
 		// Skip malformed env pairs
@@ -181,7 +181,7 @@ func BuildRemoteEnvString(envPairs []string, shellName string) string {
 			continue
 		}
 
-		formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("%s='%s'", parts[0], parts[1]))
+		formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf(`%s="%s"`, parts[0], parts[1]))
 	}
 
 	return strings.Join(formattedEnvPairs, " ")
