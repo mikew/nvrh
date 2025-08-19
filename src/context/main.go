@@ -12,17 +12,6 @@ type NvrhContext struct {
 	Endpoint        *ssh_endpoint.SshEndpoint
 	RemoteDirectory string
 
-	// Deprecated: Might not need to be on the context.
-	LocalSocketPath string
-	// Deprecated: Might not need to be on the context.
-	RemoteSocketPath string
-	// Deprecated: Might not need to be on the context.
-	ShouldUsePorts bool
-	// Deprecated: Might not need to be on the context.
-	LocalPortNumber int
-	// Deprecated: Might not need to be on the context.
-	RemotePortNumber int
-
 	AutomapPorts bool
 
 	RemoteEnv   []string
