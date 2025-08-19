@@ -36,6 +36,14 @@ if should_initialize then
   local function cleanup()
     os.remove(browser_script_path)
     os.remove(socket_path)
+
+    if
+        _G._nvrh.server_info.os == 'windows'
+        and windows_launcher_path
+        and windows_launcher_path ~= ''
+    then
+      os.remove(windows_launcher_path)
+    end
   end
 
   -- Cleanup when exiting Neovim.
