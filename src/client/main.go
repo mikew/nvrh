@@ -152,10 +152,7 @@ var CliClientOpenCommand = cli.Command{
 		localEditor := c.StringSlice("local-editor")
 		sshArgs := c.StringSlice("ssh-arg")
 
-		shouldUsePorts := runtime.GOOS == "windows"
-		if c.IsSet("use-ports") {
-			shouldUsePorts = c.Bool("use-ports")
-		}
+		shouldUsePorts := c.Bool("use-ports")
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId))
 
@@ -454,10 +451,7 @@ var CliClientReconnectCommand = cli.Command{
 		localEditor := c.StringSlice("local-editor")
 		sshArgs := c.StringSlice("ssh-arg")
 
-		shouldUsePorts := runtime.GOOS == "windows"
-		if c.IsSet("use-ports") {
-			shouldUsePorts = c.Bool("use-ports")
-		}
+		shouldUsePorts := c.Bool("use-ports")
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s-%s", sessionId, randomId))
 
