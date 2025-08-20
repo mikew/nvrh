@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.0](https://github.com/mikew/nvrh/compare/v0.2.0...v0.3.0) (2025-08-20)
+
+
+### Features
+
+* Determine server info ([#52](https://github.com/mikew/nvrh/issues/52)) ([27c802b](https://github.com/mikew/nvrh/commit/27c802b1998c4cbca41abfc72a7c92517aa19506)), closes [#11](https://github.com/mikew/nvrh/issues/11)
+* Windows terminal support ([#55](https://github.com/mikew/nvrh/issues/55)) ([f57e8a5](https://github.com/mikew/nvrh/commit/f57e8a5f5963760e9dcbdc07233ed554d5f5f6d0))
+
+
+### Bug Fixes
+
+* `client reconnect` command not getting server info ([#53](https://github.com/mikew/nvrh/issues/53)) ([2060a06](https://github.com/mikew/nvrh/commit/2060a06f6f36960ff5d260daa5fcdfe0c86adc20))
+* `lua_files` -&gt; `bridge_files` due to shell scripts ([#48](https://github.com/mikew/nvrh/issues/48)) ([92e4e92](https://github.com/mikew/nvrh/commit/92e4e9249d80d95cc8023f151670075849b8945d))
+
 ## [0.2.0](https://github.com/mikew/nvrh/compare/v0.1.23...v0.2.0) (2025-08-15)
 
 
