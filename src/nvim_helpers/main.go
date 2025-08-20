@@ -9,7 +9,6 @@ import (
 
 	"github.com/neovim/go-client/nvim"
 
-	nvrh_context "nvrh/src/context"
 	"nvrh/src/ssh_tunnel_info"
 )
 
@@ -41,34 +40,169 @@ func WaitForNvim(ctx context.Context, ti *ssh_tunnel_info.SshTunnelInfo) (*nvim.
 	}
 }
 
-func BuildRemoteCommandString(nvrhContext *nvrh_context.NvrhContext, ti *ssh_tunnel_info.SshTunnelInfo) string {
-	envPairsString := ""
-	if len(nvrhContext.RemoteEnv) > 0 {
-		var formattedEnvPairs []string
-		for _, envPair := range nvrhContext.RemoteEnv {
-			if nvrhContext.ServerInfo.ShellName == "powershell" {
-				// FOO=BAR -> $env:FOO='BAR';
-				formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("$env:%s", strings.Replace(envPair, "=", "='", 1)+"';"))
-			} else if nvrhContext.ServerInfo.ShellName == "cmd" {
-				// FOO=BAR -> set FOO=BAR&&
-				formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("set %s&&", envPair))
-			} else {
-				// FOO=BAR -> 'FOO=BAR'
-				formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("'%s'", envPair))
-			}
+func BuildRemoteCommandString(
+	nvimCmd []string,
+	shellName string,
+	remoteDirectory string,
+	remoteEnv []string,
+	ti *ssh_tunnel_info.SshTunnelInfo,
+) string {
+	nvimCmdWithAdditions := append(nvimCmd, "--headless", "--listen", ti.RemoteBoundToIp())
+	nvimCmdQuoted := `"` + strings.Join(nvimCmdWithAdditions, `" "`) + `"`
+
+	switch shellName {
+	case "powershell":
+		parts := []string{}
+
+		if remoteDirectory != "" {
+			parts = append(parts, fmt.Sprintf(
+				"cd '%s'",
+				remoteDirectory,
+			))
 		}
-		envPairsString = strings.Join(formattedEnvPairs, " ")
+
+		if len(remoteEnv) > 0 {
+			parts = append(parts, BuildRemoteEnvString(remoteEnv, shellName))
+		}
+
+		parts = append(parts, fmt.Sprintf(
+			"& %s",
+			nvimCmdQuoted,
+		))
+
+		return strings.Join(parts, "; ")
+
+	case "cmd":
+		parts := []string{}
+
+		if remoteDirectory != "" {
+			parts = append(parts, fmt.Sprintf(
+				`cd /d "%s"`,
+				remoteDirectory,
+			))
+		}
+
+		if len(remoteEnv) > 0 {
+			parts = append(parts, BuildRemoteEnvString(remoteEnv, shellName))
+		}
+
+		parts = append(parts, nvimCmdQuoted)
+
+		return strings.Join(parts, " && ")
+
+	case "bat":
+		parts := []string{
+			"@echo off",
+		}
+
+		if remoteDirectory != "" {
+			parts = append(parts, fmt.Sprintf(
+				`cd /d "%s"`,
+				remoteDirectory,
+			))
+		}
+
+		if len(remoteEnv) > 0 {
+			parts = append(parts, BuildRemoteEnvString(remoteEnv, shellName))
+		}
+
+		parts = append(parts, fmt.Sprintf(`start "" /WAIT %s`, nvimCmdQuoted))
+
+		return strings.Join(parts, "\n\n")
 	}
 
-	nvimCmd := `"` + strings.Join(nvrhContext.NvimCmd, `" "`) + `"`
-	if nvrhContext.ServerInfo.ShellName == "powershell" {
-		nvimCmd = "& " + nvimCmd
+	parts := []string{}
+
+	if remoteDirectory != "" {
+		parts = append(parts, fmt.Sprintf(
+			`cd "%s"`,
+			remoteDirectory,
+		))
 	}
+
+	parts = append(parts, fmt.Sprintf(
+		"%s %s",
+		BuildRemoteEnvString(remoteEnv, shellName),
+		nvimCmdQuoted,
+	))
 
 	return fmt.Sprintf(
-		"%s %s --headless --listen \"%s\"",
-		envPairsString,
-		nvimCmd,
-		ti.RemoteBoundToIp(),
+		`exec "$SHELL" -i -c '%s'`,
+		strings.Join(parts, " && "),
 	)
+}
+
+func BuildRemoteEnvString(envPairs []string, shellName string) string {
+	if len(envPairs) == 0 {
+		return ""
+	}
+
+	switch shellName {
+	case "powershell":
+		var formattedEnvPairs []string
+
+		for _, envPair := range envPairs {
+			// FOO=BAR -> $env:FOO='BAR'
+			parts := strings.SplitN(envPair, "=", 2)
+
+			// Skip malformed env pairs
+			if len(parts) != 2 {
+				continue
+			}
+
+			formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("$env:%s='%s'", parts[0], parts[1]))
+		}
+
+		return strings.Join(formattedEnvPairs, "; ")
+
+	case "cmd":
+		var formattedEnvPairs []string
+
+		for _, envPair := range envPairs {
+			// FOO=BAR -> set FOO='BAR'
+			parts := strings.SplitN(envPair, "=", 2)
+
+			// Skip malformed env pairs
+			if len(parts) != 2 {
+				continue
+			}
+
+			formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("set %s='%s'", parts[0], parts[1]))
+		}
+
+		return strings.Join(formattedEnvPairs, " && ")
+
+	case "bat":
+		var formattedEnvPairs []string
+
+		for _, envPair := range envPairs {
+			// FOO=BAR -> set FOO='BAR'
+			parts := strings.SplitN(envPair, "=", 2)
+
+			// Skip malformed env pairs
+			if len(parts) != 2 {
+				continue
+			}
+
+			formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf("set %s='%s'", parts[0], parts[1]))
+		}
+
+		return strings.Join(formattedEnvPairs, "\n")
+	}
+
+	var formattedEnvPairs []string
+
+	for _, envPair := range envPairs {
+		// FOO=BAR -> FOO="BAR"
+		parts := strings.SplitN(envPair, "=", 2)
+
+		// Skip malformed env pairs
+		if len(parts) != 2 {
+			continue
+		}
+
+		formattedEnvPairs = append(formattedEnvPairs, fmt.Sprintf(`%s="%s"`, parts[0], parts[1]))
+	}
+
+	return strings.Join(formattedEnvPairs, " ")
 }
