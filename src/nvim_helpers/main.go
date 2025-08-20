@@ -122,7 +122,7 @@ func BuildRemoteCommandString(
 
 	parts = append(parts, fmt.Sprintf(
 		"%s %s",
-		BuildRemoteEnvString(remoteEnv, nvimCmdQuoted),
+		BuildRemoteEnvString(remoteEnv, shellName),
 		nvimCmdQuoted,
 	))
 
