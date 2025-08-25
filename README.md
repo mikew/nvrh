@@ -49,16 +49,6 @@ OPTIONS:
    --help, -h                                     show help
 ```
 
-By default it runs `nvim`, but you can run something else with
-
-```sh
-nvrh client open \
-  --local-editor nvim-qt \
-  --local-editor --nofork \
-  --local-editor --server \
-  --local-editor {{SOCKET_PATH}}
-```
-
 ### `nvrh client reconnect`
 
 Reconnect to an existing nvrh session.
@@ -82,27 +72,35 @@ OPTIONS:
    --help, -h                                     show help
 ```
 
-### `:NvrhTunnelPort`
+### Launch a different editor
+
+By default it runs `nvim`, but you can run something else with
+`--local-editor`. This example runs `nvim-qt`:
+
+```sh
+nvrh client open \
+  --local-editor nvim-qt,--nofork,--server,--local-editor,{{SOCKET_PATH}}
+```
+
+### Tunneling Ports
 
 https://github.com/user-attachments/assets/4a8c302e-4e49-4f74-81a3-ac86ba33016a
 
-nvrh adds a `:NvrhTunnelPort` command to Neovim to tunnel a port between your
-local and remote machines.
+nvrh can tunnel ports between your local and remote machine. It does this
+either automatically by scanning the output of terminal buffers, or manually
+with the `:NvrhTunnelPort` command.
 
 ```vim
 :NvrhTunnelPort 8080
 :NvrhTunnelPort 4000
 ```
 
-### `:NvrhOpenUrl`
+### Opening URLs
 
 https://github.com/user-attachments/assets/04f9eea3-58a6-4bff-a155-8134ecdeaf2b
 
-nvrh adds a `:NvrhOpenUrl` command to Neovim to open a URL on your local machine.
+nvrh can open URLs on your local machine from your remote Neovim instance. There's a few ways to do this:
 
-```vim
-:NvrhOpenUrl https://example.com
-```
-
-In addition to this command, it also sets the `BROWSER` environment variable,
-so commands can open a browser on your local machine.
+- It patches `vim.ui.open`, so `gx` and `:Open https://example.com` will work.
+- It sets the `BROWSER` environment variable, so anything that runs in a Neovim terminal can open a URL.
+- It creates an `:NvrhOpenUrl` command to open a URL.
