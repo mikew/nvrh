@@ -1,6 +1,6 @@
 # nvrh
 
-https://github.com/user-attachments/assets/a7ab3f59-f931-4a47-ac28-2339d0cd25e9
+https://github.com/user-attachments/assets/3cc9be58-ddce-4eaa-97bc-fd6ee8b0b942
 
 nvrh (Neovim Remote Helper) aims to provide a simple way of working with a
 remote Neovim instance, like you would with VSCode Remote.
@@ -84,7 +84,7 @@ nvrh client open \
 
 ### Tunneling Ports
 
-https://github.com/user-attachments/assets/f84c9fb5-f757-489d-aee5-fcdfe44317b0
+https://github.com/user-attachments/assets/6de3dfdc-d9bc-4668-be66-cbcf2071fa82
 
 nvrh can tunnel ports between your local and remote machine. It does this
 either automatically by scanning the output of terminal buffers, or manually
@@ -97,10 +97,18 @@ with the `:NvrhTunnelPort` command.
 
 ### Opening URLs
 
-https://github.com/user-attachments/assets/d6205b5d-179e-46cd-83ec-b0de278c81f6
+https://github.com/user-attachments/assets/7a0f8418-828d-4a5f-86cb-026d5d6fd182
 
 nvrh can open URLs on your local machine from your remote Neovim instance. There's a few ways to do this:
 
 - It patches `vim.ui.open`, so `gx` and `:Open https://example.com` will work.
 - It sets the `BROWSER` environment variable, so anything that runs in a Neovim terminal can open a URL.
 - It creates an `:NvrhOpenUrl` command to open a URL.
+
+### Windows Support
+
+https://github.com/user-attachments/assets/e3e542db-4858-40c6-bb90-a6f3fc642087
+
+nvrh supports Windows both locally and remote. If running on Windows, or
+if nvrh detects the remote machine is Windows, it will switch to using ports
+instead of Unix sockets.
