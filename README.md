@@ -79,7 +79,7 @@ By default it runs `nvim`, but you can run something else with
 
 ```sh
 nvrh client open \
-  --local-editor nvim-qt,--nofork,--server,--local-editor,{{SOCKET_PATH}}
+  --local-editor nvim-qt,--nofork,--server,{{SOCKET_PATH}}
 ```
 
 ### Tunneling Ports
