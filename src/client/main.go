@@ -425,7 +425,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		// Context with cancellation on SIGINT
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 		defer stop()
 		done := make(chan error, 1)
 
