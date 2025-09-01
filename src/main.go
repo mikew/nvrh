@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"log"
 	"os"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"nvrh/src/client"
 )
@@ -26,19 +27,21 @@ func main() {
 		log.Fatalf("Error reading manifest: %v", err)
 	}
 
-	app := &cli.App{
+	cmd := &cli.Command{
 		Name: manifest.Name,
 		// These fields are named kind of strange. The `Usage` field is paired with
 		// the `Name` when running `--help`.
 		Usage:   manifest.ShortDescription,
 		Version: manifest.Version,
 
+		EnableShellCompletion: true,
+
 		Commands: []*cli.Command{
 			&client.CliClientCommand,
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
 }
