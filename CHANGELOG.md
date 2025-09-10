@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.0](https://github.com/mikew/nvrh/compare/v0.3.0...v0.4.0) (2025-09-10)
+
+
+### Features
+
+* Config file support ([#58](https://github.com/mikew/nvrh/issues/58)) ([37e54ae](https://github.com/mikew/nvrh/commit/37e54ae41bc55dd995fa23ebce4e055796069587)), closes [#56](https://github.com/mikew/nvrh/issues/56)
+
 ## [0.3.0](https://github.com/mikew/nvrh/compare/v0.2.0...v0.3.0) (2025-08-20)
 
 
