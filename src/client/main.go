@@ -27,6 +27,7 @@ import (
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/nvrh_base_ssh"
 	"nvrh/src/nvrh_binary_ssh"
+	"nvrh/src/nvrh_config"
 	"nvrh/src/nvrh_internal_ssh"
 	"nvrh/src/ssh_endpoint"
 	"nvrh/src/ssh_tunnel_info"
@@ -64,10 +65,10 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.BoolFlag{
-			Name:    "use-ports",
-			Usage:   "Use ports instead of sockets. Defaults to true on Windows",
-			Sources: cli.EnvVars("NVRH_CLIENT_USE_PORTS"),
-			Value:   runtime.GOOS == "windows",
+			Name:  "use-ports",
+			Usage: "Use ports instead of sockets. Defaults to true on Windows",
+			// Sources: cli.EnvVars("NVRH_CLIENT_USE_PORTS"),
+			Value: runtime.GOOS == "windows",
 		},
 
 		&cli.BoolFlag{
@@ -90,10 +91,10 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "nvim-cmd",
-			Usage:   "Command to run nvim with. Defaults to `nvim`",
-			Sources: cli.EnvVars("NVRH_CLIENT_NVIM_CMD"),
-			Value:   []string{"nvim"},
+			Name:  "nvim-cmd",
+			Usage: "Command to run nvim with. Defaults to `nvim` [$NVRH_CLIENT_NVIM_CMD]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_NVIM_CMD"),
+			Value: []string{"nvim"},
 		},
 
 		&cli.StringSliceFlag{
@@ -111,6 +112,11 @@ var CliClientOpenCommand = cli.Command{
 	},
 
 	Action: func(ctx context.Context, cmd *cli.Command) error {
+		cfg, err := nvrh_config.LoadConfig(nvrh_config.DefaultConfigPath())
+		if err != nil {
+			return err
+		}
+
 		isDebug := cmd.Bool("debug")
 		logger.PrepareLogger(isDebug)
 
@@ -125,6 +131,11 @@ var CliClientOpenCommand = cli.Command{
 		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
 		if endpointErr != nil {
 			return endpointErr
+		}
+
+		serverConfig := cfg.Servers[endpoint.GivenHost]
+		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+			return err
 		}
 
 		// Context with cancellation on SIGINT
@@ -317,7 +328,7 @@ var CliClientOpenCommand = cli.Command{
 		}()
 
 		// Wait for remote nvim
-		nv, err := nvim_helpers.WaitForNvim(ctx, tunnelInfo)
+		nv, err = nvim_helpers.WaitForNvim(ctx, tunnelInfo)
 		if err != nil {
 			return fmt.Errorf("failed to connect to remote nvim: %w", err)
 		}
