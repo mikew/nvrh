@@ -126,7 +126,7 @@ test-local-editor-qa-wait() {
 
   COUNT=$(ps aux | grep nvim-qt | grep -v grep | wc -l | awk '{ print $1 }')
   # Expect 2 if you're running nvim-qt locally.
-  if [ "$COUNT" -ne 2 ]; then
+  if [ "$COUNT" -ne 0 ]; then
     fail "Test failed: expected 0 nvim-qt instance, got $COUNT"
   fi
 
@@ -159,7 +159,7 @@ test-local-editor-ctrl-c() {
 
   COUNT=$(ps aux | grep nvim-qt | grep -v grep | wc -l | awk '{ print $1 }')
   # Expect 2 if you're running nvim-qt locally.
-  if [ "$COUNT" -ne 2 ]; then
+  if [ "$COUNT" -ne 0 ]; then
     fail "Test failed: expected 0 nvim-qt instance, got $COUNT"
   fi
 

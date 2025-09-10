@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/neovim/go-client/nvim"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"nvrh/src/bridge_files"
 	nvrh_context "nvrh/src/context"
@@ -27,6 +27,7 @@ import (
 	"nvrh/src/nvim_helpers"
 	"nvrh/src/nvrh_base_ssh"
 	"nvrh/src/nvrh_binary_ssh"
+	"nvrh/src/nvrh_config"
 	"nvrh/src/nvrh_internal_ssh"
 	"nvrh/src/ssh_endpoint"
 	"nvrh/src/ssh_tunnel_info"
@@ -43,7 +44,7 @@ func defaultSshPath() string {
 var CliClientCommand = cli.Command{
 	Name: "client",
 
-	Subcommands: []*cli.Command{
+	Commands: []*cli.Command{
 		&CliClientOpenCommand,
 		&CliClientReconnectCommand,
 	},
@@ -53,83 +54,92 @@ var CliClientOpenCommand = cli.Command{
 	Name:      "open",
 	Usage:     "Open a remote nvim instance in a local editor",
 	Category:  "client",
-	Args:      true,
 	ArgsUsage: "<server> [remote-directory]",
 
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "ssh-path",
 			Usage:   "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary",
-			EnvVars: []string{"NVRH_CLIENT_SSH_PATH"},
+			Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
 			Value:   "binary",
 		},
 
 		&cli.BoolFlag{
-			Name:    "use-ports",
-			Usage:   "Use ports instead of sockets. Defaults to true on Windows",
-			EnvVars: []string{"NVRH_CLIENT_USE_PORTS"},
-			Value:   runtime.GOOS == "windows",
+			Name:  "use-ports",
+			Usage: "Use ports instead of sockets. Defaults to true on Windows [$NVRH_CLIENT_USE_PORTS]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_USE_PORTS"),
+			Value: runtime.GOOS == "windows",
 		},
 
 		&cli.BoolFlag{
 			Name:    "debug",
 			Usage:   "",
-			EnvVars: []string{"NVRH_CLIENT_DEBUG"},
+			Sources: cli.EnvVars("NVRH_CLIENT_DEBUG"),
 		},
 
 		&cli.StringSliceFlag{
 			Name:    "server-env",
 			Usage:   "Environment variables to set on the remote server",
-			EnvVars: []string{"NVRH_CLIENT_SERVER_ENV"},
+			Sources: cli.EnvVars("NVRH_CLIENT_SERVER_ENV"),
 		},
 
 		&cli.StringSliceFlag{
 			Name:    "local-editor",
 			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
-			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
+			Sources: cli.EnvVars("NVRH_CLIENT_LOCAL_EDITOR"),
+			Value:   []string{"nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"},
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "nvim-cmd",
-			Usage:   "Command to run nvim with. Defaults to `nvim`",
-			EnvVars: []string{"NVRH_CLIENT_NVIM_CMD"},
-			Value:   cli.NewStringSlice("nvim"),
+			Name:  "nvim-cmd",
+			Usage: "Command to run nvim with. Defaults to `nvim` [$NVRH_CLIENT_NVIM_CMD]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_NVIM_CMD"),
+			Value: []string{"nvim"},
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "ssh-arg",
-			Usage:   "Additional arguments to pass to the SSH command",
-			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
+			Name:  "ssh-arg",
+			Usage: "Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
 		},
 
 		&cli.BoolFlag{
 			Name:    "enable-automap-ports",
 			Usage:   "Enable automatic port mapping",
-			EnvVars: []string{"NVRH_CLIENT_AUTOMAP_PORTS"},
+			Sources: cli.EnvVars("NVRH_CLIENT_AUTOMAP_PORTS"),
 			Value:   true,
 		},
 	},
 
-	Action: func(c *cli.Context) error {
-		isDebug := c.Bool("debug")
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		cfg, err := nvrh_config.LoadConfig(nvrh_config.DefaultConfigPath())
+		if err != nil {
+			return err
+		}
+
+		isDebug := cmd.Bool("debug")
 		logger.PrepareLogger(isDebug)
 
-		server := c.Args().Get(0)
+		server := cmd.Args().Get(0)
 		if server == "" {
 			return fmt.Errorf("<server> is required")
 		}
 
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
-		sshPath := getSshPath(c.String("ssh-path"))
+		sshPath := getSshPath(cmd.String("ssh-path"))
 
 		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
 		if endpointErr != nil {
 			return endpointErr
 		}
 
+		serverConfig := cfg.Servers[endpoint.GivenHost]
+		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+			return err
+		}
+
 		// Context with cancellation on SIGINT
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 		defer stop()
 		done := make(chan error, 1)
 
@@ -137,22 +147,22 @@ var CliClientOpenCommand = cli.Command{
 		nvrhContext := &nvrh_context.NvrhContext{
 			SessionId:       sessionId,
 			Endpoint:        endpoint,
-			RemoteDirectory: c.Args().Get(1),
+			RemoteDirectory: cmd.Args().Get(1),
 
-			AutomapPorts: c.Bool("enable-automap-ports"),
+			AutomapPorts: cmd.Bool("enable-automap-ports"),
 
 			Debug: isDebug,
 
 			TunneledPorts: make(map[string]bool),
 
-			NvimCmd: c.StringSlice("nvim-cmd"),
+			NvimCmd: cmd.StringSlice("nvim-cmd"),
 		}
 
-		remoteEnv := c.StringSlice("server-env")
-		localEditor := c.StringSlice("local-editor")
-		sshArgs := c.StringSlice("ssh-arg")
+		remoteEnv := cmd.StringSlice("server-env")
+		localEditor := cmd.StringSlice("local-editor")
+		sshArgs := cmd.StringSlice("ssh-arg")
 
-		shouldUsePorts := c.Bool("use-ports")
+		shouldUsePorts := cmd.Bool("use-ports")
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId))
 
@@ -318,13 +328,13 @@ var CliClientOpenCommand = cli.Command{
 		}()
 
 		// Wait for remote nvim
-		nv, err := nvim_helpers.WaitForNvim(ctx, tunnelInfo)
+		nv, err = nvim_helpers.WaitForNvim(ctx, tunnelInfo)
 		if err != nil {
 			return fmt.Errorf("failed to connect to remote nvim: %w", err)
 		}
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, c.App.Version, tunnelInfo); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, cmd.Root().Version, tunnelInfo); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
@@ -366,68 +376,77 @@ var CliClientReconnectCommand = cli.Command{
 	Name:      "reconnect",
 	Usage:     "Reconnect to an existing remote nvim instance",
 	Category:  "client",
-	Args:      true,
 	ArgsUsage: "<server> <session-id>",
 
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "ssh-path",
 			Usage:   "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary",
-			EnvVars: []string{"NVRH_CLIENT_SSH_PATH"},
+			Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
 			Value:   "binary",
 		},
 
 		&cli.BoolFlag{
-			Name:    "use-ports",
-			Usage:   "Use ports instead of sockets. Defaults to true on Windows",
-			EnvVars: []string{"NVRH_CLIENT_USE_PORTS"},
-			Value:   runtime.GOOS == "windows",
+			Name:  "use-ports",
+			Usage: "Use ports instead of sockets. Defaults to true on Windows [$NVRH_CLIENT_USE_PORTS]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_USE_PORTS"),
+			Value: runtime.GOOS == "windows",
 		},
 
 		&cli.BoolFlag{
 			Name:    "debug",
 			Usage:   "",
-			EnvVars: []string{"NVRH_CLIENT_DEBUG"},
+			Sources: cli.EnvVars("NVRH_CLIENT_DEBUG"),
 		},
 
 		&cli.StringSliceFlag{
 			Name:    "local-editor",
 			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			EnvVars: []string{"NVRH_CLIENT_LOCAL_EDITOR"},
-			Value:   cli.NewStringSlice("nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"),
+			Sources: cli.EnvVars("NVRH_CLIENT_LOCAL_EDITOR"),
+			Value:   []string{"nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"},
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "ssh-arg",
-			Usage:   "Additional arguments to pass to the SSH command",
-			EnvVars: []string{"NVRH_CLIENT_SSH_ARG"},
+			Name:  "ssh-arg",
+			Usage: "Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
 		},
 	},
 
-	Action: func(c *cli.Context) error {
-		isDebug := c.Bool("debug")
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		cfg, err := nvrh_config.LoadConfig(nvrh_config.DefaultConfigPath())
+		if err != nil {
+			return err
+		}
+
+		isDebug := cmd.Bool("debug")
 		logger.PrepareLogger(isDebug)
 
 		// Prepare the context.
-		server := c.Args().Get(0)
+		server := cmd.Args().Get(0)
 		if server == "" {
 			return fmt.Errorf("<server> is required")
 		}
 
-		sessionId := c.Args().Get(1)
+		sessionId := cmd.Args().Get(1)
 		if sessionId == "" {
 			return fmt.Errorf("<session-id> is required")
 		}
 
-		sshPath := getSshPath(c.String("ssh-path"))
+		sshPath := getSshPath(cmd.String("ssh-path"))
 
 		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
 		if endpointErr != nil {
 			return endpointErr
 		}
 
+		serverConfig := cfg.Servers[endpoint.GivenHost]
+		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+			return err
+		}
+
 		// Context with cancellation on SIGINT
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 		defer stop()
 		done := make(chan error, 1)
 
@@ -448,10 +467,10 @@ var CliClientReconnectCommand = cli.Command{
 			// NvimCmd: c.StringSlice("nvim-cmd"),
 		}
 
-		localEditor := c.StringSlice("local-editor")
-		sshArgs := c.StringSlice("ssh-arg")
+		localEditor := cmd.StringSlice("local-editor")
+		sshArgs := cmd.StringSlice("ssh-arg")
 
-		shouldUsePorts := c.Bool("use-ports")
+		shouldUsePorts := cmd.Bool("use-ports")
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s-%s", sessionId, randomId))
 
@@ -467,7 +486,7 @@ var CliClientReconnectCommand = cli.Command{
 		nvrhContext.SshClient = sshClient
 
 		if shouldUsePorts {
-			portNumberString := c.Args().Get(2)
+			portNumberString := cmd.Args().Get(2)
 			portNumber := 0
 			if portNumberString != "" {
 				converted, err := strconv.Atoi(portNumberString)
@@ -516,7 +535,7 @@ var CliClientReconnectCommand = cli.Command{
 		}()
 
 		// Wait for remote nvim
-		nv, err := nvim_helpers.WaitForNvim(ctx, tunnelInfo)
+		nv, err = nvim_helpers.WaitForNvim(ctx, tunnelInfo)
 		if err != nil {
 			return fmt.Errorf("failed to connect to remote nvim: %w", err)
 		}
@@ -528,7 +547,7 @@ var CliClientReconnectCommand = cli.Command{
 		nvrhContext.ServerInfo = serverInfo
 
 		// Prepare remote nvim
-		if err := prepareRemoteNvim(nvrhContext, nv, c.App.Version, tunnelInfo); err != nil {
+		if err := prepareRemoteNvim(nvrhContext, nv, cmd.Root().Version, tunnelInfo); err != nil {
 			slog.Warn("Error preparing remote nvim", "err", err)
 		}
 
