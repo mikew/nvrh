@@ -11,8 +11,9 @@ import (
 )
 
 type NvrhConfigServer struct {
-	NvimCmd  []string `yaml:"nvim-cmd"`
+	NvimCmd  []string `yaml:"nvim-cmd,omitempty"`
 	UsePorts *bool    `yaml:"use-ports,omitempty"`
+	SshArg   []string `yaml:"ssh-arg,omitempty"`
 }
 
 type NvrhConfig struct {
@@ -50,6 +51,7 @@ func LoadConfig(path string) (*NvrhConfig, error) {
 var envIndex = map[string][]string{
 	"nvim-cmd":  {"NVRH_CLIENT_NVIM_CMD"},
 	"use-ports": {"NVRH_CLIENT_USE_PORTS"},
+	"ssh-arg":   {"NVRH_CLIENT_SSH_ARG"},
 }
 
 func ApplyPrecedence(c *cli.Command, sc NvrhConfigServer) error {
@@ -65,6 +67,14 @@ func ApplyPrecedence(c *cli.Command, sc NvrhConfigServer) error {
 	if !c.IsSet("use-ports") && sc.UsePorts != nil {
 		if err := c.Set("use-ports", fmt.Sprintf("%v", *sc.UsePorts)); err != nil {
 			return err
+		}
+	}
+
+	if !c.IsSet("ssh-arg") && len(sc.SshArg) > 0 {
+		for _, v := range sc.SshArg {
+			if err := c.Set("ssh-arg", v); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -98,9 +98,9 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "ssh-arg",
-			Usage:   "Additional arguments to pass to the SSH command",
-			Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
+			Name:  "ssh-arg",
+			Usage: "Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
 		},
 
 		&cli.BoolFlag{
@@ -407,9 +407,9 @@ var CliClientReconnectCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "ssh-arg",
-			Usage:   "Additional arguments to pass to the SSH command",
-			Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
+			Name:  "ssh-arg",
+			Usage: "Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
 		},
 	},
 
