@@ -11,12 +11,12 @@ import (
 )
 
 type NvrhConfigServer struct {
-	NvimCmd     []string          `yaml:"nvim-cmd,omitempty"`
-	UsePorts    *bool             `yaml:"use-ports,omitempty"`
-	SshArg      []string          `yaml:"ssh-arg,omitempty"`
-	SshPath     string            `yaml:"ssh-path,omitempty"`
-	LocalEditor []string          `yaml:"local-editor,omitempty"`
-	ServerEnv   map[string]string `yaml:"server-env,omitempty"`
+	NvimCmd     []string `yaml:"nvim-cmd,omitempty"`
+	UsePorts    *bool    `yaml:"use-ports,omitempty"`
+	SshArg      []string `yaml:"ssh-arg,omitempty"`
+	SshPath     string   `yaml:"ssh-path,omitempty"`
+	LocalEditor []string `yaml:"local-editor,omitempty"`
+	ServerEnv   []string `yaml:"server-env,omitempty"`
 }
 
 type NvrhConfig struct {
@@ -53,12 +53,12 @@ func LoadConfig(path string) (*NvrhConfig, error) {
 }
 
 var envIndex = map[string][]string{
+	"nvim-cmd":     {"NVRH_CLIENT_NVIM_CMD"},
+	"use-ports":    {"NVRH_CLIENT_USE_PORTS"},
+	"ssh-arg":      {"NVRH_CLIENT_SSH_ARG"},
 	"ssh-path":     {"NVRH_CLIENT_SSH_PATH"},
 	"local-editor": {"NVRH_CLIENT_LOCAL_EDITOR"},
 	"server-env":   {"NVRH_CLIENT_SERVER_ENV"},
-	"nvim-cmd":  {"NVRH_CLIENT_NVIM_CMD"},
-	"use-ports": {"NVRH_CLIENT_USE_PORTS"},
-	"ssh-arg":   {"NVRH_CLIENT_SSH_ARG"},
 }
 
 func ApplyPrecedence(c *cli.Command,
@@ -111,8 +111,8 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer) error {
 	}
 
 	if !c.IsSet("server-env") && len(serverConfig.ServerEnv) > 0 {
-		for k, v := range serverConfig.ServerEnv {
-			if err := c.Set("server-env", fmt.Sprintf("%s=%s", k, v)); err != nil {
+		for _, v := range serverConfig.ServerEnv {
+			if err := c.Set("server-env", v); err != nil {
 				return err
 			}
 		}
