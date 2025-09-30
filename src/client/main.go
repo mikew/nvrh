@@ -134,7 +134,7 @@ var CliClientOpenCommand = cli.Command{
 		}
 
 		serverConfig := cfg.Servers[endpoint.GivenHost]
-		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+		if err := nvrh_config.ApplyPrecedence(cmd, cfg.Default, serverConfig); err != nil {
 			return err
 		}
 
@@ -441,7 +441,7 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		serverConfig := cfg.Servers[endpoint.GivenHost]
-		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+		if err := nvrh_config.ApplyPrecedence(cmd, cfg.Default, serverConfig); err != nil {
 			return err
 		}
 
