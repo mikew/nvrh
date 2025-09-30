@@ -58,10 +58,10 @@ var CliClientOpenCommand = cli.Command{
 
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:    "ssh-path",
-			Usage:   "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary",
-			Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
-			Value:   "binary",
+			Name:  "ssh-path",
+			Usage: "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary [$NVRH_CLIENT_SSH_PATH]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
+			Value: "binary",
 		},
 
 		&cli.BoolFlag{
@@ -78,16 +78,16 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "server-env",
-			Usage:   "Environment variables to set on the remote server",
-			Sources: cli.EnvVars("NVRH_CLIENT_SERVER_ENV"),
+			Name:  "server-env",
+			Usage: "Environment variables to set on the remote server [$NVRH_CLIENT_SERVER_ENV]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SERVER_ENV"),
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "local-editor",
-			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			Sources: cli.EnvVars("NVRH_CLIENT_LOCAL_EDITOR"),
-			Value:   []string{"nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"},
+			Name:  "local-editor",
+			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path [$NVRH_CLIENT_LOCAL_EDITOR]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_LOCAL_EDITOR"),
+			Value: []string{"nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"},
 		},
 
 		&cli.StringSliceFlag{
@@ -125,18 +125,18 @@ var CliClientOpenCommand = cli.Command{
 			return fmt.Errorf("<server> is required")
 		}
 
-		sessionId := fmt.Sprintf("%d", time.Now().Unix())
-		sshPath := getSshPath(cmd.String("ssh-path"))
-
 		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
 		if endpointErr != nil {
 			return endpointErr
 		}
 
 		serverConfig := cfg.Servers[endpoint.GivenHost]
-		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+		if err := nvrh_config.ApplyPrecedence(cmd, cfg.Default, serverConfig); err != nil {
 			return err
 		}
+
+		sessionId := fmt.Sprintf("%d", time.Now().Unix())
+		sshPath := getSshPath(cmd.String("ssh-path"))
 
 		// Context with cancellation on SIGINT
 		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
@@ -380,10 +380,10 @@ var CliClientReconnectCommand = cli.Command{
 
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:    "ssh-path",
-			Usage:   "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary",
-			Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
-			Value:   "binary",
+			Name:  "ssh-path",
+			Usage: "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary [$NVRH_CLIENT_SSH_PATH]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
+			Value: "binary",
 		},
 
 		&cli.BoolFlag{
@@ -400,10 +400,10 @@ var CliClientReconnectCommand = cli.Command{
 		},
 
 		&cli.StringSliceFlag{
-			Name:    "local-editor",
-			Usage:   "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path",
-			Sources: cli.EnvVars("NVRH_CLIENT_LOCAL_EDITOR"),
-			Value:   []string{"nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"},
+			Name:  "local-editor",
+			Usage: "Local editor to use. {{SOCKET_PATH}} will be replaced with the socket path [$NVRH_CLIENT_LOCAL_EDITOR]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_LOCAL_EDITOR"),
+			Value: []string{"nvim", "--server", "{{SOCKET_PATH}}", "--remote-ui"},
 		},
 
 		&cli.StringSliceFlag{
@@ -433,17 +433,17 @@ var CliClientReconnectCommand = cli.Command{
 			return fmt.Errorf("<session-id> is required")
 		}
 
-		sshPath := getSshPath(cmd.String("ssh-path"))
-
 		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
 		if endpointErr != nil {
 			return endpointErr
 		}
 
 		serverConfig := cfg.Servers[endpoint.GivenHost]
-		if err := nvrh_config.ApplyPrecedence(cmd, serverConfig); err != nil {
+		if err := nvrh_config.ApplyPrecedence(cmd, cfg.Default, serverConfig); err != nil {
 			return err
 		}
+
+		sshPath := getSshPath(cmd.String("ssh-path"))
 
 		// Context with cancellation on SIGINT
 		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
