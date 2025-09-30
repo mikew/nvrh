@@ -55,11 +55,6 @@ func BuildRemoteCommandString(
 		parts := []string{}
 
 		if remoteDirectory != "" {
-			if strings.HasPrefix(remoteDirectory, "~/") {
-				remoteDirectory = strings.Replace(remoteDirectory, "~/", "$HOME/", 1)
-			} else if remoteDirectory == "~" {
-				remoteDirectory = "$HOME"
-			}
 			parts = append(parts, fmt.Sprintf(
 				"cd '%s'",
 				remoteDirectory,
@@ -119,10 +114,19 @@ func BuildRemoteCommandString(
 	parts := []string{}
 
 	if remoteDirectory != "" {
-		parts = append(parts, fmt.Sprintf(
-			`cd "%s"`,
-			remoteDirectory,
-		))
+		if after, ok := strings.CutPrefix(remoteDirectory, "~/"); ok {
+			parts = append(parts, fmt.Sprintf(
+				"cd $HOME'/%s'",
+				after,
+			))
+		} else if remoteDirectory == "~" {
+			parts = append(parts, "cd $HOME")
+		} else {
+			parts = append(parts, fmt.Sprintf(
+				"cd '%s'",
+				remoteDirectory,
+			))
+		}
 	}
 
 	parts = append(parts, fmt.Sprintf(
