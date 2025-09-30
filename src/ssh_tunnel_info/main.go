@@ -16,7 +16,7 @@ func (ti *SshTunnelInfo) LocalBoundToIp() string {
 		return ti.LocalSocket
 	}
 
-	ip := "localhost"
+	ip := "127.0.0.1"
 	if ti.Public {
 		ip = "0.0.0.0"
 	}
@@ -29,7 +29,7 @@ func (ti *SshTunnelInfo) RemoteBoundToIp() string {
 		return ti.RemoteSocket
 	}
 
-	ip := "localhost"
+	ip := "127.0.0.1"
 	if ti.Public {
 		ip = "0.0.0.0"
 	}

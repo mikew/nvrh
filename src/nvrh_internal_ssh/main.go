@@ -118,7 +118,7 @@ func LocalListenerFromTunnelInfo(ti *ssh_tunnel_info.SshTunnelInfo) (net.Listene
 	case "unix":
 		return net.Listen("unix", ti.LocalSocket)
 	case "port":
-		ip := "localhost"
+		ip := "127.0.0.1"
 		if ti.Public {
 			ip = "0.0.0.0"
 		}
@@ -134,7 +134,7 @@ func RemoteListenerFromTunnelInfo(ti *ssh_tunnel_info.SshTunnelInfo, sshClient *
 	case "unix":
 		return sshClient.Dial("unix", ti.RemoteSocket)
 	case "port":
-		return sshClient.Dial("tcp", fmt.Sprintf("localhost:%s", ti.RemoteSocket))
+		return sshClient.Dial("tcp", fmt.Sprintf("127.0.0.1:%s", ti.RemoteSocket))
 	}
 
 	return nil, fmt.Errorf("Invalid mode: %s", ti.Mode)

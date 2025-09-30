@@ -91,7 +91,7 @@ func bindTunnelInfo(ti *ssh_tunnel_info.SshTunnelInfo) string {
 		return fmt.Sprintf("%s:%s", ti.LocalSocket, ti.RemoteSocket)
 	}
 
-	ip := "localhost"
+	ip := "127.0.0.1"
 	if ti.Public {
 		ip = "0.0.0.0"
 	}
