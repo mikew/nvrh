@@ -55,10 +55,19 @@ func BuildRemoteCommandString(
 		parts := []string{}
 
 		if remoteDirectory != "" {
-			parts = append(parts, fmt.Sprintf(
-				"cd '%s'",
-				remoteDirectory,
-			))
+			if after, ok := strings.CutPrefix(remoteDirectory, "~/"); ok {
+				parts = append(parts, fmt.Sprintf(
+					`Set-Location "$env:USERPROFILE\%s"`,
+					after,
+				))
+			} else if remoteDirectory == "~" {
+				parts = append(parts, `Set-Location "$env:USERPROFILE"`)
+			} else {
+				parts = append(parts, fmt.Sprintf(
+					`Set-Location "%s"`,
+					remoteDirectory,
+				))
+			}
 		}
 
 		if len(remoteEnv) > 0 {
@@ -76,10 +85,19 @@ func BuildRemoteCommandString(
 		parts := []string{}
 
 		if remoteDirectory != "" {
-			parts = append(parts, fmt.Sprintf(
-				`cd /d "%s"`,
-				remoteDirectory,
-			))
+			if after, ok := strings.CutPrefix(remoteDirectory, "~/"); ok {
+				parts = append(parts, fmt.Sprintf(
+					`cd /d "%%USERPROFILE%%\%s"`,
+					after,
+				))
+			} else if remoteDirectory == "~" {
+				parts = append(parts, `cd /d "%USERPROFILE%"`)
+			} else {
+				parts = append(parts, fmt.Sprintf(
+					`cd /d "%s"`,
+					remoteDirectory,
+				))
+			}
 		}
 
 		if len(remoteEnv) > 0 {
@@ -96,10 +114,19 @@ func BuildRemoteCommandString(
 		}
 
 		if remoteDirectory != "" {
-			parts = append(parts, fmt.Sprintf(
-				`cd /d "%s"`,
-				remoteDirectory,
-			))
+			if after, ok := strings.CutPrefix(remoteDirectory, "~/"); ok {
+				parts = append(parts, fmt.Sprintf(
+					`cd /d "%%USERPROFILE%%\%s"`,
+					after,
+				))
+			} else if remoteDirectory == "~" {
+				parts = append(parts, `cd /d "%USERPROFILE%"`)
+			} else {
+				parts = append(parts, fmt.Sprintf(
+					`cd /d "%s"`,
+					remoteDirectory,
+				))
+			}
 		}
 
 		if len(remoteEnv) > 0 {
@@ -116,7 +143,7 @@ func BuildRemoteCommandString(
 	if remoteDirectory != "" {
 		if after, ok := strings.CutPrefix(remoteDirectory, "~/"); ok {
 			parts = append(parts, fmt.Sprintf(
-				"cd \"$HOME\"'/%s'",
+				`cd "$HOME"'/%s'`,
 				after,
 			))
 		} else if remoteDirectory == "~" {
