@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.0](https://github.com/mikew/nvrh/compare/v0.4.0...v0.5.0) (2025-10-01)
+
+
+### Features
+
+* add Default config which applies to all servers ([#61](https://github.com/mikew/nvrh/issues/61)) ([ab63473](https://github.com/mikew/nvrh/commit/ab63473bf53ef35a2434307473d72d0a3218cf1b))
+* replace remote directory's leading tilde with HOME variable ([#64](https://github.com/mikew/nvrh/issues/64)) ([e4c2710](https://github.com/mikew/nvrh/commit/e4c27109cf3cecfb623b2805d603766f7d7270ce))
+
+
+### Bug Fixes
+
+* Add pull_request trigger to ci ([ccfce59](https://github.com/mikew/nvrh/commit/ccfce596867747b056fe5bde9f3067cab96ecba9))
+
 ## [0.4.0](https://github.com/mikew/nvrh/compare/v0.3.0...v0.4.0) (2025-09-10)
 
 
