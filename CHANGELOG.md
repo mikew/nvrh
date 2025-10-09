@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.1](https://github.com/mikew/nvrh/compare/v0.5.0...v0.5.1) (2025-10-09)
+
+
+### Bug Fixes
+
+* Fix reconnect command ([#65](https://github.com/mikew/nvrh/issues/65)) ([4d76ff9](https://github.com/mikew/nvrh/commit/4d76ff9805088ce7f977ed614f32d87e1901ee79))
+
 ## [0.5.0](https://github.com/mikew/nvrh/compare/v0.4.0...v0.5.0) (2025-10-01)
 
 
