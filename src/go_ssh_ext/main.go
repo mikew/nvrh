@@ -46,11 +46,11 @@ func GetSshClientForEndpoint(endpoint *ssh_endpoint.SshEndpoint) (*ssh.Client, e
 		}
 
 		if knownhosts.IsHostUnknown(err) {
-			fmt.Print(fmt.Sprintf(`The authenticity of host '%s (%s)' can't be established.
-%s key fingerprint is %s.
-Are you sure you want to continue connecting (yes/no)? `,
+			fmt.Printf(`The authenticity of host '%s (%s)' can't be established.
+				%s key fingerprint is %s.
+				Are you sure you want to continue connecting (yes/no)? `,
 				hostname, remote, key.Type(), ssh.FingerprintSHA256(key),
-			))
+			)
 			var response string
 			fmt.Scanf("%v", &response)
 

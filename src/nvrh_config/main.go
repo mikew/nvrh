@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/urfave/cli/v3"
@@ -61,18 +62,25 @@ var envIndex = map[string][]string{
 	"server-env":   {"NVRH_CLIENT_SERVER_ENV"},
 }
 
-func ApplyPrecedence(c *cli.Command,
+type shouldSetFunc func(name string) bool
+
+func ApplyPrecedence(
+	c *cli.Command,
 	defaultServerConfig NvrhConfigServer,
-	serverConfig NvrhConfigServer) error {
-	// Use values from YAML if not set in command.
+	serverConfig NvrhConfigServer,
+) error {
+	flagNames := getFlagNames(c)
+	shouldSet := func(name string) bool {
+		return slices.Contains(flagNames, name) && !c.IsSet(name)
+	}
 
 	// First apply the specific server config, then the default config.
-	err := applyServerConfig(c, serverConfig)
+	err := applyServerConfig(c, serverConfig, shouldSet)
 	if err != nil {
 		return err
 	}
 
-	err = applyServerConfig(c, defaultServerConfig)
+	err = applyServerConfig(c, defaultServerConfig, shouldSet)
 	if err != nil {
 		return err
 	}
@@ -93,16 +101,14 @@ func ApplyPrecedence(c *cli.Command,
 	return nil
 }
 
-func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer) error {
-	if !c.IsSet("ssh-path") {
-		if serverConfig.SshPath != "" {
-			if err := c.Set("ssh-path", serverConfig.SshPath); err != nil {
-				return err
-			}
+func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer, shouldSet shouldSetFunc) error {
+	if shouldSet("ssh-path") && serverConfig.SshPath != "" {
+		if err := c.Set("ssh-path", serverConfig.SshPath); err != nil {
+			return err
 		}
 	}
 
-	if !c.IsSet("local-editor") && len(serverConfig.LocalEditor) > 0 {
+	if shouldSet("local-editor") && len(serverConfig.LocalEditor) > 0 {
 		for _, v := range serverConfig.LocalEditor {
 			if err := c.Set("local-editor", v); err != nil {
 				return err
@@ -110,7 +116,7 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer) error {
 		}
 	}
 
-	if !c.IsSet("server-env") && len(serverConfig.ServerEnv) > 0 {
+	if shouldSet("server-env") && len(serverConfig.ServerEnv) > 0 {
 		for _, v := range serverConfig.ServerEnv {
 			if err := c.Set("server-env", v); err != nil {
 				return err
@@ -118,7 +124,7 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer) error {
 		}
 	}
 
-	if !c.IsSet("nvim-cmd") && len(serverConfig.NvimCmd) > 0 {
+	if shouldSet("nvim-cmd") && len(serverConfig.NvimCmd) > 0 {
 		for _, v := range serverConfig.NvimCmd {
 			if err := c.Set("nvim-cmd", v); err != nil {
 				return err
@@ -126,13 +132,13 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer) error {
 		}
 	}
 
-	if !c.IsSet("use-ports") && serverConfig.UsePorts != nil {
+	if shouldSet("use-ports") && serverConfig.UsePorts != nil {
 		if err := c.Set("use-ports", fmt.Sprintf("%v", *serverConfig.UsePorts)); err != nil {
 			return err
 		}
 	}
 
-	if !c.IsSet("ssh-arg") && len(serverConfig.SshArg) > 0 {
+	if shouldSet("ssh-arg") && len(serverConfig.SshArg) > 0 {
 		for _, v := range serverConfig.SshArg {
 			if err := c.Set("ssh-arg", v); err != nil {
 				return err
@@ -141,6 +147,16 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer) error {
 	}
 
 	return nil
+}
+
+func getFlagNames(c *cli.Command) []string {
+	flagNames := []string{}
+
+	for _, f := range c.Flags {
+		flagNames = append(flagNames, f.Names()...)
+	}
+
+	return flagNames
 }
 
 func lookupFirst(keys []string) (string, bool) {
