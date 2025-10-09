@@ -35,7 +35,7 @@ import (
 
 func defaultSshPath() string {
 	if runtime.GOOS == "windows" {
-		return "C:\\Windows\\System32\\OpenSSH\\ssh.exe"
+		return `C:\Windows\System32\OpenSSH\ssh.exe`
 	}
 
 	return "ssh"
