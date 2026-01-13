@@ -5,12 +5,11 @@ import (
 )
 
 type SshTunnelInfo struct {
-	Mode                 string
-	LocalSocket          string
-	RemoteSocket         string
-	Public               bool
-	DirectConnectEnabled bool
-	DirectConnectHost    string
+	Mode              string
+	LocalSocket       string
+	RemoteSocket      string
+	Public            bool
+	DirectConnectHost string
 }
 
 func (ti *SshTunnelInfo) LocalBoundToIp() string {
@@ -23,7 +22,7 @@ func (ti *SshTunnelInfo) LocalBoundToIp() string {
 		ip = "0.0.0.0"
 	}
 
-	if ti.DirectConnectEnabled {
+	if ti.DirectConnectHost != "" {
 		return fmt.Sprintf("%s:%s", ti.DirectConnectHost, ti.LocalSocket)
 	}
 
@@ -40,7 +39,7 @@ func (ti *SshTunnelInfo) RemoteBoundToIp() string {
 		ip = "0.0.0.0"
 	}
 
-	if ti.DirectConnectEnabled {
+	if ti.DirectConnectHost != "" {
 		return fmt.Sprintf("%s:%s", "0.0.0.0", ti.LocalSocket)
 	}
 
