@@ -23,7 +23,7 @@ func (c *NvrhBinarySshClient) Close() error {
 func (c *NvrhBinarySshClient) Run(command string, tunnelInfo *ssh_tunnel_info.SshTunnelInfo) error {
 	args := []string{}
 
-	if tunnelInfo != nil {
+	if tunnelInfo != nil && !tunnelInfo.DirectConnectEnabled {
 		args = append(args, "-L", bindTunnelInfo(tunnelInfo))
 	}
 

@@ -11,13 +11,39 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type DirectConnectValue struct {
+	Enabled bool
+	Address string
+}
+
+func (dcv *DirectConnectValue) UnmarshalYAML(value *yaml.Node) error {
+	var b bool
+	if err := value.Decode(&b); err == nil {
+		dcv.Enabled = b
+		dcv.Address = ""
+
+		return nil
+	}
+
+	var s string
+	if err := value.Decode(&s); err == nil {
+		dcv.Enabled = true
+		dcv.Address = s
+
+		return nil
+	}
+
+	return fmt.Errorf("direct-connect must be a boolean or a string")
+}
+
 type NvrhConfigServer struct {
-	NvimCmd     []string `yaml:"nvim-cmd,omitempty"`
-	UsePorts    *bool    `yaml:"use-ports,omitempty"`
-	SshArg      []string `yaml:"ssh-arg,omitempty"`
-	SshPath     string   `yaml:"ssh-path,omitempty"`
-	LocalEditor []string `yaml:"local-editor,omitempty"`
-	ServerEnv   []string `yaml:"server-env,omitempty"`
+	NvimCmd       []string           `yaml:"nvim-cmd,omitempty"`
+	UsePorts      *bool              `yaml:"use-ports,omitempty"`
+	SshArg        []string           `yaml:"ssh-arg,omitempty"`
+	SshPath       string             `yaml:"ssh-path,omitempty"`
+	LocalEditor   []string           `yaml:"local-editor,omitempty"`
+	ServerEnv     []string           `yaml:"server-env,omitempty"`
+	DirectConnect DirectConnectValue `yaml:"direct-connect,omitempty"`
 }
 
 type NvrhConfig struct {
@@ -143,6 +169,18 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer, shouldSet 
 			if err := c.Set("ssh-arg", v); err != nil {
 				return err
 			}
+		}
+	}
+
+	if shouldSet("direct-connect") && serverConfig.DirectConnect.Enabled {
+		val := serverConfig.DirectConnect.Address
+
+		if val == "" {
+			val = "true"
+		}
+
+		if err := c.Set("direct-connect", val); err != nil {
+			return err
 		}
 	}
 

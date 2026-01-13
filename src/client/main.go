@@ -109,6 +109,12 @@ var CliClientOpenCommand = cli.Command{
 			Sources: cli.EnvVars("NVRH_CLIENT_AUTOMAP_PORTS"),
 			Value:   true,
 		},
+
+		&cli.StringFlag{
+			Name:  "direct-connect",
+			Usage: "",
+			// Sources: cli.EnvVars(""),
+		},
 	},
 
 	Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -138,6 +144,15 @@ var CliClientOpenCommand = cli.Command{
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
 		sshPath := getSshPath(cmd.String("ssh-path"))
 
+		shouldUseDirectConnect := false
+		directConnectHost := cmd.String("direct-connect")
+		if directConnectHost != "" {
+			shouldUseDirectConnect = true
+		}
+		if directConnectHost == "true" {
+			directConnectHost = endpoint.FinalHost()
+		}
+
 		// Context with cancellation on SIGINT
 		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 		defer stop()
@@ -163,6 +178,9 @@ var CliClientOpenCommand = cli.Command{
 		sshArgs := cmd.StringSlice("ssh-arg")
 
 		shouldUsePorts := cmd.Bool("use-ports")
+		if shouldUseDirectConnect {
+			shouldUsePorts = true
+		}
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId))
 
@@ -196,10 +214,12 @@ var CliClientOpenCommand = cli.Command{
 		siDone := make(chan error, 1)
 
 		siTunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
-			Mode:         "port",
-			Public:       false,
-			LocalSocket:  fmt.Sprintf("%d", randomPort),
-			RemoteSocket: fmt.Sprintf("%d", randomPort),
+			Mode:                 "port",
+			Public:               false,
+			DirectConnectEnabled: shouldUseDirectConnect,
+			DirectConnectHost:    directConnectHost,
+			LocalSocket:          fmt.Sprintf("%d", randomPort),
+			RemoteSocket:         fmt.Sprintf("%d", randomPort),
 		}
 
 		// Start server info nvim instance.
@@ -242,10 +262,12 @@ var CliClientOpenCommand = cli.Command{
 				)
 
 				tunnelInfo = &ssh_tunnel_info.SshTunnelInfo{
-					Mode:         "port",
-					LocalSocket:  fmt.Sprintf("%d", localPortNumber),
-					RemoteSocket: fmt.Sprintf("%d", remotePortNumber),
-					Public:       false,
+					Mode:                 "port",
+					DirectConnectEnabled: shouldUseDirectConnect,
+					DirectConnectHost:    directConnectHost,
+					LocalSocket:          fmt.Sprintf("%d", localPortNumber),
+					RemoteSocket:         fmt.Sprintf("%d", remotePortNumber),
+					Public:               false,
 				}
 
 				nvimCmd := nvim_helpers.BuildRemoteCommandString(
@@ -291,10 +313,12 @@ var CliClientOpenCommand = cli.Command{
 		// check here in case that path isn't hit.
 		if tunnelInfo == nil {
 			tunnelInfo = &ssh_tunnel_info.SshTunnelInfo{
-				Mode:         "unix",
-				LocalSocket:  localSocketPath,
-				RemoteSocket: remoteSocketPath,
-				Public:       false,
+				Mode:                 "unix",
+				DirectConnectEnabled: shouldUseDirectConnect,
+				DirectConnectHost:    directConnectHost,
+				LocalSocket:          localSocketPath,
+				RemoteSocket:         remoteSocketPath,
+				Public:               false,
 			}
 		}
 
