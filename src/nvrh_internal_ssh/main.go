@@ -33,7 +33,7 @@ func (c *NvrhInternalSshClient) Run(command string, tunnelInfo *ssh_tunnel_info.
 
 	slog.Debug("Running command via SSH", "command", command)
 
-	if tunnelInfo != nil && tunnelInfo.DirectConnectHost != "" {
+	if tunnelInfo != nil && tunnelInfo.DirectConnectHost == "" {
 		go c.TunnelSocket(tunnelInfo)
 	}
 
