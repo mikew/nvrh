@@ -111,9 +111,8 @@ var CliClientOpenCommand = cli.Command{
 		},
 
 		&cli.StringFlag{
-			Name:  "direct-connect",
-			Usage: "",
-			// Sources: cli.EnvVars(""),
+			Name:  "insecure-direct-connect",
+			Usage: "Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing",
 		},
 	},
 
@@ -144,7 +143,7 @@ var CliClientOpenCommand = cli.Command{
 		sessionId := fmt.Sprintf("%d", time.Now().Unix())
 		sshPath := getSshPath(cmd.String("ssh-path"))
 
-		directConnectHost := cmd.String("direct-connect")
+		directConnectHost := cmd.String("insecure-direct-connect")
 		if directConnectHost == "true" {
 			directConnectHost = endpoint.FinalHost()
 		}

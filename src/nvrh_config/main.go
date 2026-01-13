@@ -33,7 +33,7 @@ func (dcv *DirectConnectValue) UnmarshalYAML(value *yaml.Node) error {
 		return nil
 	}
 
-	return fmt.Errorf("direct-connect must be a boolean or a string")
+	return fmt.Errorf("insecure-direct-connect must be a boolean or a string")
 }
 
 type NvrhConfigServer struct {
@@ -43,7 +43,7 @@ type NvrhConfigServer struct {
 	SshPath       string             `yaml:"ssh-path,omitempty"`
 	LocalEditor   []string           `yaml:"local-editor,omitempty"`
 	ServerEnv     []string           `yaml:"server-env,omitempty"`
-	DirectConnect DirectConnectValue `yaml:"direct-connect,omitempty"`
+	DirectConnect DirectConnectValue `yaml:"insecure-direct-connect,omitempty"`
 }
 
 type NvrhConfig struct {
@@ -172,14 +172,14 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer, shouldSet 
 		}
 	}
 
-	if shouldSet("direct-connect") && serverConfig.DirectConnect.Enabled {
+	if shouldSet("insecure-direct-connect") && serverConfig.DirectConnect.Enabled {
 		val := serverConfig.DirectConnect.Address
 
 		if val == "" {
 			val = "true"
 		}
 
-		if err := c.Set("direct-connect", val); err != nil {
+		if err := c.Set("insecure-direct-connect", val); err != nil {
 			return err
 		}
 	}
