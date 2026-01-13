@@ -427,6 +427,11 @@ var CliClientReconnectCommand = cli.Command{
 			Usage: "Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]",
 			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
 		},
+
+		&cli.StringFlag{
+			Name:  "insecure-direct-connect",
+			Usage: "Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing",
+		},
 	},
 
 	Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -461,6 +466,11 @@ var CliClientReconnectCommand = cli.Command{
 
 		sshPath := getSshPath(cmd.String("ssh-path"))
 
+		directConnectHost := cmd.String("insecure-direct-connect")
+		if directConnectHost == "true" {
+			directConnectHost = endpoint.FinalHost()
+		}
+
 		// Context with cancellation on SIGINT
 		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 		defer stop()
@@ -487,6 +497,9 @@ var CliClientReconnectCommand = cli.Command{
 		sshArgs := cmd.StringSlice("ssh-arg")
 
 		shouldUsePorts := cmd.Bool("use-ports")
+		if directConnectHost != "" {
+			shouldUsePorts = true
+		}
 		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
 		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s-%s", sessionId, randomId))
 
@@ -534,10 +547,11 @@ var CliClientReconnectCommand = cli.Command{
 
 		// Setup SSH tunnel
 		tunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
-			Mode:         "unix",
-			LocalSocket:  localSocketPath,
-			RemoteSocket: remoteSocketPath,
-			Public:       false,
+			Mode:              "unix",
+			DirectConnectHost: directConnectHost,
+			LocalSocket:       localSocketPath,
+			RemoteSocket:      remoteSocketPath,
+			Public:            false,
 		}
 
 		if shouldUsePorts {
@@ -545,9 +559,11 @@ var CliClientReconnectCommand = cli.Command{
 		}
 
 		go func() {
-			nvrhContext.SshClient.TunnelSocket(tunnelInfo)
-			// TODO needed?
-			stop()
+			if directConnectHost == "" {
+				nvrhContext.SshClient.TunnelSocket(tunnelInfo)
+				// TODO needed?
+				stop()
+			}
 		}()
 
 		// Wait for remote nvim
