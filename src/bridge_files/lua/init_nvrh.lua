@@ -35,6 +35,7 @@ if should_initialize then
 
   local function cleanup()
     os.remove(browser_script_path)
+    os.remove(editor_script_path)
     os.remove(socket_path)
 
     if

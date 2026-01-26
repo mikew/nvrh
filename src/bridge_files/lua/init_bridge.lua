@@ -1,4 +1,4 @@
-local session_id, channel_id, socket_path, browser_script_path, should_map_ports, nvrh_server_info, windows_launcher_path =
+local session_id, channel_id, socket_path, browser_script_path, should_map_ports, nvrh_server_info, windows_launcher_path, editor_script_path =
     ...
 
 local should_initialize = _G._nvrh == nil

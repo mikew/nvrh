@@ -1,0 +1,10 @@
+#!/bin/sh
+
+LOCK_FILE="/tmp/nvim_lock_$(date +%%N)"
+SOCKET_PATH="%s"
+
+nvim --server "$SOCKET_PATH" --remote-expr "v:lua._nvrh.edit_with_lock('$1', '$LOCK_FILE', '$2', '$3')" > /dev/null 2>&1
+
+while [ -f "$LOCK_FILE" ]; do
+  sleep 0.1
+done
