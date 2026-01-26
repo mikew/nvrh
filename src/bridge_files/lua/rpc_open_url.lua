@@ -25,5 +25,6 @@ if should_initialize then
     end
   end
 
+  vim.env.NVRH_BROWSER = browser_script_path
   vim.env.BROWSER = browser_script_path
 end
