@@ -13,8 +13,8 @@ nvim --server "%%SOCKET_PATH%%" --remote-send "<cmd>lua _G._nvrh.edit_with_lock(
 
 :WAIT
 if exist "%%LOCK_FILE%%" (
-    timeout /t 1 /nobreak >nul
-    goto WAIT
+  pathping 127.0.0.1 -n -q 1 -p 100 >nul
+  goto WAIT
 )
 
 exit /b 0
