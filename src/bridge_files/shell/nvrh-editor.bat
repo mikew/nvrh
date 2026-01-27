@@ -10,6 +10,7 @@ set "COL=%%~3"
 
 nvim --server "%%SOCKET_PATH%%" --remote-send "<cmd>lua _G._nvrh.edit_with_lock([[%%FILE_PATH%%]], [[%%LOCK_FILE%%]], [[%%LINE%%]], [[%%COL%%]])<cr>"
 
+pathping 127.0.0.1 -n -q 1 -p 100 >nul
 
 :WAIT
 if exist "%%LOCK_FILE%%" (
