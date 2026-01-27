@@ -2,7 +2,8 @@
 setlocal enabledelayedexpansion
 
 set "SOCKET_PATH=%s"
-set "LOCK_FILE=%%TEMP%%\nvim_lock_%%RANDOM%%.txt"
+set "LOCK_FILE=%%TEMP%%\nvrh-editor-%%RANDOM%%.lock"
+
 set "FILE_PATH=%%~1"
 set "LINE=%%~2"
 set "COL=%%~3"

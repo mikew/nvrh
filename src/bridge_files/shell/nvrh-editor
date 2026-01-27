@@ -1,6 +1,7 @@
 #!/bin/sh
 
-LOCK_FILE="/tmp/nvim_lock_$(date +%%N)"
+RANDOM=$(head -c4 /dev/urandom | hexdump -e '1/4 "%%u" "\n"')
+LOCK_FILE="/tmp/nvrh-editor-$RANDOM.lock"
 SOCKET_PATH="%s"
 
 nvim --server "$SOCKET_PATH" --remote-send "<cmd>lua _G._nvrh.edit_with_lock([[$1]], [[$LOCK_FILE]], [[$2]], [[$3]])<cr>"
