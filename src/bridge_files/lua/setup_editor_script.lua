@@ -1,7 +1,7 @@
 if should_initialize then
-  local script_contents = [[
+  local script_contents = [====[
 %s
-]]
+]====]
 
   vim.fn.writefile(vim.fn.split(script_contents, '\n'), editor_script_path)
 

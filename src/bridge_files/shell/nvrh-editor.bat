@@ -7,10 +7,8 @@ set "FILE_PATH=%%~1"
 set "LINE=%%~2"
 set "COL=%%~3"
 
-set "SAFE_PATH=%%FILE_PATH:\=/%%"
-set "SAFE_LOCK=%%LOCK_FILE:\=/%%"
+nvim --server "%%SOCKET_PATH%%" --remote-send "<cmd>lua _G._nvrh.edit_with_lock([[%%FILE_PATH%%]], [[%%LOCK_FILE%%]], [[%%LINE%%]], [[%%COL%%]])<cr>"
 
-nvim --server "%%SOCKET_PATH%%" --remote-send "<cmd>lua _nvrh.edit_with_lock('%%SAFE_PATH%%', '%%SAFE_LOCK%%', '%%LINE%%', '%%COL%%')<cr>"
 
 :WAIT
 if exist "%%LOCK_FILE%%" (

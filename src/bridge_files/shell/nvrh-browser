@@ -2,4 +2,4 @@
 
 SOCKET_PATH="%s"
 
-exec nvim --server "$SOCKET_PATH" --remote-expr "v:lua._nvrh.open_url('$1')" > /dev/null
+exec nvim --server "$SOCKET_PATH" --remote-send "<cmd>lua _G._nvrh.open_url([[$1]])<cr>"
