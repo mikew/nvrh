@@ -17,6 +17,7 @@ set "COLUMN_NUMBER=!COLUMN_NUMBER:"=\"!"
 
 set "SOCKET_PATH=%s"
 set "LOCK_FILE=%%TEMP%%\nvrh-editor-%%RANDOM%%.lock"
+set "LOCK_FILE=!FILE_PATH:\=\\!"
 
 nvim --server "%%SOCKET_PATH%%" --remote-expr "v:lua._G._nvrh.edit_with_lock(\"!FILE_PATH!\", \"!LOCK_FILE!\", \"!LINE!\", \"!COL!\")" > nul 2>&1
 
