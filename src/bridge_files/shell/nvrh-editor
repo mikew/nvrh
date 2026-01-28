@@ -1,10 +1,14 @@
 #!/bin/sh
 
+FILE_PATH=$(printf '%%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')
+LINE_NUMBER=$(printf '%%s' "$2" | sed 's/\\/\\\\/g; s/"/\\"/g')
+COLUMN_NUMBER=$(printf '%%s' "$3" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
 RANDOM=$(head -c4 /dev/urandom | hexdump -e '1/4 "%%u" "\n"')
 LOCK_FILE="/tmp/nvrh-editor-$RANDOM.lock"
 SOCKET_PATH="%s"
 
-nvim --server "$SOCKET_PATH" --remote-send "<cmd>lua _G._nvrh.edit_with_lock([[$1]], [[$LOCK_FILE]], [[$2]], [[$3]])<cr>"
+nvim --server "$SOCKET_PATH" --remote-expr "v:lua._G._nvrh.edit_with_lock(\"$FILE_PATH\", \"$LOCK_FILE\", \"$LINE_NUMBER\", \"$COLUMN_NUMBER\")" > /dev/null 2>&1
 
 sleep 0.1
 

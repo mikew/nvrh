@@ -1,5 +1,7 @@
 #!/bin/sh
 
+URL=$(printf '%%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
 SOCKET_PATH="%s"
 
-exec nvim --server "$SOCKET_PATH" --remote-send "<cmd>lua _G._nvrh.open_url([[$1]])<cr>"
+exec nvim --server "$SOCKET_PATH" --remote-expr "v:lua._G._nvrh.open_url(\"$URL\")" > /dev/null 2>&1
