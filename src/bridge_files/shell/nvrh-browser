@@ -1,6 +1,13 @@
 #!/bin/sh
 
-URL=$(printf '%%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')
+escape_value() {
+  # The double-percent signs are intentional since this file is formatted with
+  # golang.
+  # shellcheck disable=SC2182
+  printf '%%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+URL=$(escape_value "$1")
 
 SOCKET_PATH="%s"
 
