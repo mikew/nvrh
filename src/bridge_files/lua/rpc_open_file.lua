@@ -11,8 +11,8 @@ if should_initialize then
 
     local window = vim.api.nvim_get_current_win()
 
-    if line ~= '' then
-      if col == '' then
+    if line ~= '' and line ~= '-1' then
+      if col == '' or col == '-1' then
         col = '1'
       end
 

@@ -1,25 +1,28 @@
 @echo off
-setlocal enabledelayedexpansion
 
 set "FILE_PATH=%%~1"
-set "LINE=%%~2"
-set "COL=%%~3"
+set "LINE_NUMBER=%%~2"
+set "COLUMN_NUMBER=%%~3"
+
+:: Seems to be needed in cmd, otherwise they get passed as `\=\\`
+if "%%LINE_NUMBER%%"=="" set "LINE_NUMBER=-1"
+if "%%COLUMN_NUMBER%%"=="" set "COLUMN_NUMBER=-1"
 
 :: Escape backslashes
-set "FILE_PATH=!FILE_PATH:\=\\!"
-set "LINE_NUMBER=!LINE_NUMBER:\=\\!"
-set "COLUMN_NUMBER=!COLUMN_NUMBER:\=\\!"
+set "FILE_PATH=%%FILE_PATH:\=\\%%"
+set "LINE_NUMBER=%%LINE_NUMBER:\=\\%%"
+set "COLUMN_NUMBER=%%COLUMN_NUMBER:\=\\%%"
 
 :: Escape double quotes
-set "FILE_PATH=!FILE_PATH:"=\"!"
-set "LINE_NUMBER=!LINE_NUMBER:"=\"!"
-set "COLUMN_NUMBER=!COLUMN_NUMBER:"=\"!"
+set "FILE_PATH=%%FILE_PATH:"=\"%%"
+set "LINE_NUMBER=%%LINE_NUMBER:"=\"%%"
+set "COLUMN_NUMBER=%%COLUMN_NUMBER:"=\"%%"
 
 set "SOCKET_PATH=%s"
 set "LOCK_FILE=%%TEMP%%\nvrh-editor-%%RANDOM%%.lock"
-set "LOCK_FILE=!FILE_PATH:\=\\!"
+set "LOCK_FILE=%%LOCK_FILE:\=\\%%"
 
-nvim --server "%%SOCKET_PATH%%" --remote-expr "v:lua._G._nvrh.edit_with_lock(\"!FILE_PATH!\", \"!LOCK_FILE!\", \"!LINE!\", \"!COL!\")" > nul 2>&1
+nvim --server "%%SOCKET_PATH%%" --remote-expr "v:lua._G._nvrh.edit_with_lock(\"%%FILE_PATH%%\", \"%%LOCK_FILE%%\", \"%%LINE_NUMBER%%\", \"%%COLUMN_NUMBER%%\")" > nul 2>&1
 
 pathping 127.0.0.1 -n -q 1 -p 100 >nul
 
