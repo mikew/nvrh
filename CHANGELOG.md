@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.6.0](https://github.com/mikew/nvrh/compare/v0.5.1...v0.6.0) (2026-01-29)
+
+
+### Features
+
+* `$EDITOR` script ([#70](https://github.com/mikew/nvrh/issues/70)) ([85bca4c](https://github.com/mikew/nvrh/commit/85bca4ca67411d8d422682f6e76616e43cfca168))
+* Direct connect mode ([#68](https://github.com/mikew/nvrh/issues/68)) ([c9e6b4d](https://github.com/mikew/nvrh/commit/c9e6b4d18f0891cabbb1e7506fde84dd2f4ac6ed)), closes [#67](https://github.com/mikew/nvrh/issues/67)
+
+
+### Bug Fixes
+
+* Update README.md ([#71](https://github.com/mikew/nvrh/issues/71)) ([d6f007b](https://github.com/mikew/nvrh/commit/d6f007b4be1f35de9ef2af6f5e13191d8f4cdac4))
+
 ## [0.5.1](https://github.com/mikew/nvrh/compare/v0.5.0...v0.5.1) (2025-10-09)
 
 
