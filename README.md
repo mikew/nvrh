@@ -111,6 +111,8 @@ There's a few ways to trigger this:
 
 ### Editing Files
 
+https://github.com/user-attachments/assets/fceb311e-dd80-4ad1-8075-99e4418044fc
+
 nvrh sets the `$EDITOR` environment variable on the remote machine, so
 something like `git commit` will open the file in your current remote session.
 This also works for UIs that have an "Open in Editor" feature.
