@@ -16,5 +16,6 @@ browser_script_path = ''
 should_map_ports = false
 nvrh_server_info = ''
 windows_launcher_path = ''
+editor_script_path = ''
 
 should_initialize = false
