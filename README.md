@@ -85,6 +85,47 @@ nvrh client open \
   --local-editor nvim-qt,--nofork,--server,{{SOCKET_PATH}}
 ```
 
+### Configuration
+
+nvrh can be configured with:
+
+- Environment variables (see `--help` to see what's supported)
+- A configuration file at `~/.config/nvrh/config.yaml`
+- Command line arguments (see `--help`)
+
+The configuration file uses the same names as the command line arguments. It
+supports a `default` section in addition to the name of any remote server
+you're connecting to.
+
+```yaml
+default:
+  ssh-path: internal
+
+  local-editor:
+    - nvim-qt
+    - --nofork
+    - --server
+    - "{{SOCKET_PATH}}"
+
+  server-env:
+    - FOO=bar
+
+servers:
+  my-remote-server:
+    nvim-cmd:
+      - /home/linuxbrew/.linuxbrew/bin/nvim
+
+  my-remote-server-requiring-ssh:
+    ssh-path: binary
+
+  my-remote-windows-server:
+    nvim-cmd:
+      - mise
+      - exec
+      - --
+      - nvim
+```
+
 ### Tunneling Ports
 
 https://github.com/user-attachments/assets/6de3dfdc-d9bc-4668-be66-cbcf2071fa82
