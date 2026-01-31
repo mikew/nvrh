@@ -1,4 +1,6 @@
-if should_initialize then
+if _G._nvrh_is_initialized ~= true then
+  local browser_script_path = ...
+
   ---@param url string
   function _G._nvrh.open_url(url)
     for _, channel in ipairs(_G._nvrh.get_nvrh_channels()) do
@@ -16,6 +18,7 @@ if should_initialize then
   })
 
   local original_open = vim.ui.open
+  ---@diagnostic disable-next-line: duplicate-set-field
   vim.ui.open = function(uri, opts)
     if type(uri) == 'string' and uri:match('^https?://') then
       _G._nvrh.open_url(uri)
