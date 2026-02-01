@@ -4,9 +4,9 @@ if should_initialize then
   ---@param col? number
   local function default_open_file(filename, line, col)
     vim.cmd.tabedit(filename)
-    local window = vim.api.nvim_get_current_win()
 
     if line ~= nil then
+      local window = vim.api.nvim_get_current_win()
       pcall(vim.api.nvim_win_set_cursor, window, { line, col or 0 })
     end
   end
