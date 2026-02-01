@@ -758,7 +758,7 @@ func prepareRemoteNvim(
 
 	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/rpc_tunnel_port.lua"), nil)
 	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/setup_port_scanner.lua"), nil, nvrhContext.AutomapPorts)
-	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/session_automap_ports.lua"), nil)
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/session_automap_ports.lua"), nil, nv.ChannelID())
 
 	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/finalize_bridge.lua"), nil)
 

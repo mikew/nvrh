@@ -27,7 +27,7 @@ nvim --server "%SOCKET_PATH%" --remote-expr "v:lua._G._nvrh.edit_with_lock(\"%FI
 pathping 127.0.0.1 -n -q 1 -p 100 >nul
 
 :WAIT
-if exist "%%LOCK_FILE%%" (
+if exist "%LOCK_FILE%" (
   pathping 127.0.0.1 -n -q 1 -p 100 >nul
   goto WAIT
 )
