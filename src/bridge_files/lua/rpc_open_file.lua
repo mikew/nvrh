@@ -1,35 +1,46 @@
 if should_initialize then
   ---@param filename string
-  ---@param lock_path string
-  ---@param line string
-  ---@param col string
-  function _G._nvrh.edit_with_lock(filename, lock_path, line, col)
-    local ok = pcall(vim.cmd.tabedit, filename)
-    if not ok then
-      return
-    end
-
+  ---@param line? number
+  ---@param col? number
+  local function default_open_file(filename, line, col)
+    vim.cmd.tabedit(filename)
     local window = vim.api.nvim_get_current_win()
 
-    if line ~= '' and line ~= '-1' then
-      if col == '' or col == '-1' then
-        col = '1'
-      end
+    if line ~= nil then
+      pcall(vim.api.nvim_win_set_cursor, window, { line, col or 0 })
+    end
+  end
 
-      pcall(
-        vim.api.nvim_win_set_cursor,
-        window,
-        { tonumber(line), tonumber(col) - 1 }
-      )
+  ---@param filename string
+  ---@param lock_path string
+  ---@param line_arg string
+  ---@param col_arg string
+  function _G._nvrh.edit_with_lock(filename, lock_path, line_arg, col_arg)
+    ---@type number?
+    local line = nil
+    ---@type number?
+    local col = nil
+
+    if line_arg ~= '' and line_arg ~= '-1' then
+      line = tonumber(line_arg)
     end
 
-    local function cleanup_lock()
-      pcall(os.remove, lock_path)
+    if col_arg ~= '' and col_arg ~= '-1' then
+      -- col_arg is 1-based, but neovim expects 0-based.
+      col = tonumber(col_arg) - 1
     end
+
+    local handler = _G.nvrh_open_file_handler or default_open_file
+    handler(filename, line, col)
+
+    local window = vim.api.nvim_get_current_win()
 
     local lock_file, err = io.open(lock_path, 'w')
     if lock_file then
       vim.api.nvim_create_autocmd('WinClosed', {
+      local function cleanup_lock()
+        pcall(os.remove, lock_path)
+      end
         callback = function(args)
           if args.match == tostring(window) then
             cleanup_lock()
