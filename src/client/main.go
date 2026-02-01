@@ -732,9 +732,8 @@ func prepareRemoteNvim(
 		return err
 	}
 
-	err = nv.ExecLua(
-		scriptsJoined,
-		nil,
+	batch := nv.NewBatch()
+
 		nvrhContext.SessionId,
 		nv.ChannelID(),
 		ti.RemoteBoundToIp(),
@@ -744,6 +743,9 @@ func prepareRemoteNvim(
 		nvrhContext.WindowsLauncherPath,
 		editorScriptPath,
 	)
+
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/finalize_bridge.lua"), nil)
+	err = batch.Execute()
 
 	if err != nil {
 		return err
