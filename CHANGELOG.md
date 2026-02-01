@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.7.0](https://github.com/mikew/nvrh/compare/v0.6.0...v0.7.0) (2026-02-01)
+
+
+### Features
+
+* Custom open file handler ([#74](https://github.com/mikew/nvrh/issues/74)) ([4649eb0](https://github.com/mikew/nvrh/commit/4649eb03b4bf61f26094e669e93ec98876df1711))
+
+
+### Bug Fixes
+
+* Document configuration file ([#73](https://github.com/mikew/nvrh/issues/73)) ([53bca4e](https://github.com/mikew/nvrh/commit/53bca4e7c311e0ca0e8905f4ee1777e8005bf889))
+* Refactor bridge files ([#76](https://github.com/mikew/nvrh/issues/76)) ([91dba24](https://github.com/mikew/nvrh/commit/91dba24fc4a1b64b5f45e475269975c6339bc052))
+
 ## [0.6.0](https://github.com/mikew/nvrh/compare/v0.5.1...v0.6.0) (2026-01-29)
 
 
