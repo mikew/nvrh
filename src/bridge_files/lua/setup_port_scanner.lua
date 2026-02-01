@@ -1,4 +1,6 @@
-if should_initialize and should_map_ports then
+local should_map_ports = ...
+
+if _G._nvrh_is_initialized ~= true and should_map_ports then
   local nvrh_port_scanner = {
     active_watchers = {},
 

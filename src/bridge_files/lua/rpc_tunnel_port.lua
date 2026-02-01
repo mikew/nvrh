@@ -1,4 +1,4 @@
-if should_initialize then
+if _G._nvrh_is_initialized ~= true then
   ---@param port string|integer
   function _G._nvrh.tunnel_port(port)
     for _, channel in ipairs(_G._nvrh.get_nvrh_channels()) do

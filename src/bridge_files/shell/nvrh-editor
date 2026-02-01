@@ -1,19 +1,16 @@
 #!/bin/sh
 
 escape_value() {
-  # The double-percent signs are intentional since this file is formatted with
-  # golang.
-  # shellcheck disable=SC2182
-  printf '%%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 FILE_PATH=$(escape_value "$1")
 LINE_NUMBER=$(escape_value "$2")
 COLUMN_NUMBER=$(escape_value "$3")
 
-RANDOM_VALUE=$(head -c4 /dev/urandom | hexdump -e '1/4 "%%u" "\n"')
+RANDOM_VALUE=$(head -c4 /dev/urandom | hexdump -e '1/4 "%u" "\n"')
 LOCK_FILE="/tmp/nvrh-editor-$RANDOM_VALUE.lock"
-SOCKET_PATH="%s"
+SOCKET_PATH="{{.SocketPath}}"
 
 nvim --server "$SOCKET_PATH" --remote-expr "v:lua._G._nvrh.edit_with_lock(\"$FILE_PATH\", \"$LOCK_FILE\", \"$LINE_NUMBER\", \"$COLUMN_NUMBER\")" > /dev/null 2>&1
 

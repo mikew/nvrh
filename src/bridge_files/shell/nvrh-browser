@@ -1,14 +1,11 @@
 #!/bin/sh
 
 escape_value() {
-  # The double-percent signs are intentional since this file is formatted with
-  # golang.
-  # shellcheck disable=SC2182
-  printf '%%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 URL=$(escape_value "$1")
 
-SOCKET_PATH="%s"
+SOCKET_PATH="{{.SocketPath}}"
 
 exec nvim --server "$SOCKET_PATH" --remote-expr "v:lua._G._nvrh.open_url(\"$URL\")" > /dev/null 2>&1

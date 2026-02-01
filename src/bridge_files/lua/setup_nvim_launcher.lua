@@ -1,3 +1,0 @@
-local script_contents, script_path = ...
-
-vim.fn.writefile(vim.fn.split(script_contents, '\n'), script_path)

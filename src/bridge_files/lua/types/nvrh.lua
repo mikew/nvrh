@@ -8,15 +8,8 @@
 ---@field tmpdir string The temporary directory path
 ---@field shell_name string The shell name, e.g., "bash", "zsh", "cmd", "powershell"
 
---- These are bridged from the Go code
-session_id = ''
-channel_id = -1
-socket_path = ''
-browser_script_path = ''
-should_map_ports = false
-nvrh_server_info = ''
-windows_launcher_path = ''
-editor_script_path = ''
+---@type boolean|nil
+_G._nvrh_is_initialized = nil
 
 ---@type fun(filename: string, line?: number, col?: number): nil
 _G.nvrh_open_file_handler = nil
