@@ -37,10 +37,24 @@ if should_initialize then
 
     local lock_file, err = io.open(lock_path, 'w')
     if lock_file then
-      vim.api.nvim_create_autocmd('WinClosed', {
+      local winclosed_event_id = -1
+      local vimleave_event_id = -1
+
       local function cleanup_lock()
         pcall(os.remove, lock_path)
+
+        if winclosed_event_id ~= -1 then
+          pcall(vim.api.nvim_del_autocmd, winclosed_event_id)
+          winclosed_event_id = -1
+        end
+
+        if vimleave_event_id ~= -1 then
+          pcall(vim.api.nvim_del_autocmd, vimleave_event_id)
+          vimleave_event_id = -1
+        end
       end
+
+      winclosed_event_id = vim.api.nvim_create_autocmd('WinClosed', {
         callback = function(args)
           if args.match == tostring(window) then
             cleanup_lock()
@@ -48,7 +62,7 @@ if should_initialize then
         end,
       })
 
-      vim.api.nvim_create_autocmd('VimLeavePre', {
+      vimleave_event_id = vim.api.nvim_create_autocmd('VimLeavePre', {
         callback = function()
           cleanup_lock()
         end,
