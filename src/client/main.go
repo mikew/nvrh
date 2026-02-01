@@ -272,10 +272,9 @@ var CliClientOpenCommand = cli.Command{
 				)
 
 				err := siNv.ExecLua(
-					bridge_files.ReadFileWithoutError("lua/setup_nvim_launcher.lua"),
-					nil,
-					nvimCmd,
+					bridge_files.ReadFileWithoutError("lua/setup_remote_file.lua"), nil,
 					nvrhContext.WindowsLauncherPath,
+					nvimCmd,
 				)
 
 				if err != nil {
@@ -697,35 +696,33 @@ func prepareRemoteNvim(
 	nv.RegisterHandler("open-url", RpcHandleOpenUrl)
 
 	// Prepare bridge code.
-	browserShellScript, browserScriptPath := getBrowserScript(nvrhContext)
-	editorShellScript, editorScriptPath := getEditorScript(nvrhContext)
-	allScripts := []string{
-		bridge_files.ReadFileWithoutError("lua/init_bridge.lua"),
-		bridge_files.ReadFileWithoutError("lua/init_nvrh.lua"),
+	browserScriptPath := pathWithBatExtension(
+		[]string{
+			nvrhContext.ServerInfo.Tmpdir,
+			fmt.Sprintf("nvrh-browser-%s", nvrhContext.SessionId),
+		},
+		nvrhContext.ServerInfo.Os,
+	)
+	browserShellScript := bridge_files.ReadFileWithTemplate(
+		pathWithBatExtension([]string{"shell/nvrh-browser"}, nvrhContext.ServerInfo.Os),
+		map[string]any{
+			"SocketPath": ti.RemoteBoundToIp(),
+		},
+	)
 
-		bridge_files.ReadFileWithoutError("lua/rpc_open_url.lua"),
-		fmt.Sprintf(
-			bridge_files.ReadFileWithoutError("lua/setup_browser_script.lua"),
-			fmt.Sprintf(
-				browserShellScript,
-				ti.RemoteBoundToIp(),
-			),
-		),
-
-		bridge_files.ReadFileWithoutError("lua/rpc_open_file.lua"),
-		fmt.Sprintf(
-			bridge_files.ReadFileWithoutError("lua/setup_editor_script.lua"),
-			fmt.Sprintf(
-				editorShellScript,
-				ti.RemoteBoundToIp(),
-			),
-		),
-
-		bridge_files.ReadFileWithoutError("lua/rpc_tunnel_port.lua"),
-		bridge_files.ReadFileWithoutError("lua/setup_port_scanner.lua"),
-		bridge_files.ReadFileWithoutError("lua/session_automap_ports.lua"),
-	}
-	scriptsJoined := strings.Join(allScripts, "\n\n")
+	editorScriptPath := pathWithBatExtension(
+		[]string{
+			nvrhContext.ServerInfo.Tmpdir,
+			fmt.Sprintf("nvrh-editor-%s", nvrhContext.SessionId),
+		},
+		nvrhContext.ServerInfo.Os,
+	)
+	editorShellScript := bridge_files.ReadFileWithTemplate(
+		pathWithBatExtension([]string{"shell/nvrh-editor"}, nvrhContext.ServerInfo.Os),
+		map[string]any{
+			"SocketPath": ti.RemoteBoundToIp(),
+		},
+	)
 
 	marshalled, err := json.Marshal(nvrhContext.ServerInfo)
 	if err != nil {
@@ -734,17 +731,37 @@ func prepareRemoteNvim(
 
 	batch := nv.NewBatch()
 
-		nvrhContext.SessionId,
-		nv.ChannelID(),
-		ti.RemoteBoundToIp(),
-		browserScriptPath,
-		nvrhContext.AutomapPorts,
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/init_nvrh.lua"), nil,
 		string(marshalled),
-		nvrhContext.WindowsLauncherPath,
+		nvrhContext.SessionId,
+		// TODO This needs a bunch of extra stuff so that files can be cleaned up.
+		// Maybe use VimLeavePre or nvrh custom on_quit?
+		browserScriptPath,
 		editorScriptPath,
+		ti.RemoteBoundToIp(),
+		nvrhContext.WindowsLauncherPath,
 	)
 
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/rpc_open_url.lua"), nil, browserScriptPath)
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/setup_remote_file_on_init.lua"), nil,
+		browserScriptPath,
+		browserShellScript,
+		"rwxr-xr-x",
+	)
+
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/rpc_open_file.lua"), nil, editorScriptPath)
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/setup_remote_file_on_init.lua"), nil,
+		editorScriptPath,
+		editorShellScript,
+		"rwxr-xr-x",
+	)
+
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/rpc_tunnel_port.lua"), nil)
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/setup_port_scanner.lua"), nil, nvrhContext.AutomapPorts)
+	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/session_automap_ports.lua"), nil)
+
 	batch.ExecLua(bridge_files.ReadFileWithoutError("lua/finalize_bridge.lua"), nil)
+
 	err = batch.Execute()
 
 	if err != nil {
@@ -798,64 +815,21 @@ func closeNvimSocket(nv *nvim.Nvim, quitAll bool) {
 	nv.Close()
 }
 
-func getBrowserScript(nvrhContext *nvrh_context.NvrhContext) (string, string) {
-	var browserShellScript string
-	if nvrhContext.ServerInfo.Os == "windows" {
-		browserShellScript = bridge_files.ReadFileWithoutError("shell/nvrh-browser.bat")
+func pathWithBatExtension(path []string, os string) string {
+	var joiner string
+	if os == "windows" {
+		joiner = `\`
 	} else {
-		browserShellScript = bridge_files.ReadFileWithoutError("shell/nvrh-browser")
+		joiner = `/`
 	}
 
-	var browserScriptPath string
-	if nvrhContext.ServerInfo.Os == "windows" {
-		browserScriptPath = strings.Join(
-			[]string{
-				nvrhContext.ServerInfo.Tmpdir,
-				fmt.Sprintf("nvrh-browser-%s.bat", nvrhContext.SessionId),
-			},
-			`\`,
-		)
-	} else {
-		browserScriptPath = strings.Join(
-			[]string{
-				nvrhContext.ServerInfo.Tmpdir,
-				fmt.Sprintf("nvrh-browser-%s", nvrhContext.SessionId),
-			},
-			`/`,
-		)
+	joined := strings.Join(path, joiner)
+
+	if os == "windows" {
+		joined += ".bat"
 	}
 
-	return browserShellScript, browserScriptPath
-}
-
-func getEditorScript(nvrhContext *nvrh_context.NvrhContext) (string, string) {
-	var editorShellScript string
-	if nvrhContext.ServerInfo.Os == "windows" {
-		editorShellScript = bridge_files.ReadFileWithoutError("shell/nvrh-editor.bat")
-	} else {
-		editorShellScript = bridge_files.ReadFileWithoutError("shell/nvrh-editor")
-	}
-
-	var editorScriptPath string
-	if nvrhContext.ServerInfo.Os == "windows" {
-		editorScriptPath = strings.Join(
-			[]string{
-				nvrhContext.ServerInfo.Tmpdir,
-				fmt.Sprintf("nvrh-editor-%s.bat", nvrhContext.SessionId),
-			},
-			`\`,
-		)
-	} else {
-		editorScriptPath = strings.Join(
-			[]string{
-				nvrhContext.ServerInfo.Tmpdir,
-				fmt.Sprintf("nvrh-editor-%s", nvrhContext.SessionId),
-			},
-			`/`,
-		)
-	}
-
-	return editorShellScript, editorScriptPath
+	return joined
 }
 
 func getSshPath(given string) string {

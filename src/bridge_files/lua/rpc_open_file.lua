@@ -1,4 +1,6 @@
-if should_initialize then
+if _G._nvrh_is_initialized ~= true then
+  local editor_script_path = ...
+
   ---@param filename string
   ---@param line? number
   ---@param col? number

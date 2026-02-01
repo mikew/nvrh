@@ -7,7 +7,10 @@
 ---@field id integer
 ---@field client NvrhChannelClient?
 
-if should_initialize then
+if _G._nvrh_is_initialized ~= true then
+  local nvrh_server_info, session_id, browser_script_path, editor_script_path, socket_path, windows_launcher_path =
+    ...
+
   _G._nvrh = {
     ---@type { [string]: boolean }
     mapped_ports = {},
@@ -39,9 +42,9 @@ if should_initialize then
     os.remove(socket_path)
 
     if
-        _G._nvrh.server_info.os == 'windows'
-        and windows_launcher_path
-        and windows_launcher_path ~= ''
+      _G._nvrh.server_info.os == 'windows'
+      and windows_launcher_path
+      and windows_launcher_path ~= ''
     then
       os.remove(windows_launcher_path)
     end
