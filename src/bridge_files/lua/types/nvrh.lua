@@ -18,4 +18,7 @@ nvrh_server_info = ''
 windows_launcher_path = ''
 editor_script_path = ''
 
+---@type fun(filename: string, line?: number, col?: number): nil
+_G.nvrh_open_file_handler = nil
+
 should_initialize = false
