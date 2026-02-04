@@ -5,7 +5,7 @@ if _G._nvrh_is_initialized ~= true then
   ---@param line? number
   ---@param col? number
   local function default_open_file(filename, line, col)
-    vim.cmd.tabedit(filename)
+    vim.cmd.tabedit(vim.fn.fnameescape(filename))
 
     if line ~= nil then
       local window = vim.api.nvim_get_current_win()
