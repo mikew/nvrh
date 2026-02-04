@@ -59,6 +59,7 @@ if _G._nvrh_is_initialized ~= true then
 
   -- Exit if last client disconnects.
   vim.api.nvim_create_autocmd('UILeave', {
+    nested = true,
     callback = function(args)
       if #vim.api.nvim_list_uis() == 0 then
         -- TODO No idea why cleanup is needed here, it should be handled by
