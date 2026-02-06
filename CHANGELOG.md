@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.7.1](https://github.com/mikew/nvrh/compare/v0.7.0...v0.7.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* Use `fnameescape` in `default_open_file`, `nested = true` in `UILeave` autocmd ([#77](https://github.com/mikew/nvrh/issues/77)) ([e5a5d47](https://github.com/mikew/nvrh/commit/e5a5d4785eb93b3392388e83fc96bddf8e91ebc7))
+
 ## [0.7.0](https://github.com/mikew/nvrh/compare/v0.6.0...v0.7.0) (2026-02-01)
 
 
