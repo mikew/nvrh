@@ -46,8 +46,13 @@ func BuildRemoteCommandString(
 	remoteDirectory string,
 	remoteEnv []string,
 	ti *ssh_tunnel_info.SshTunnelInfo,
+	useEmbed bool,
 ) string {
-	nvimCmdWithAdditions := append(nvimCmd, "--headless", "--listen", ti.RemoteBoundToIp())
+	headlessOrEmbed := "--headless"
+	if useEmbed {
+		headlessOrEmbed = "--embed"
+	}
+	nvimCmdWithAdditions := append(nvimCmd, headlessOrEmbed, "--listen", ti.RemoteBoundToIp())
 	nvimCmdQuoted := `"` + strings.Join(nvimCmdWithAdditions, `" "`) + `"`
 
 	switch shellName {
