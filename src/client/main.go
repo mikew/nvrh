@@ -114,6 +114,12 @@ var CliClientOpenCommand = cli.Command{
 			Name:  "insecure-direct-connect",
 			Usage: "Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing",
 		},
+
+		&cli.BoolFlag{
+			Name:  "use-nvim-embed",
+			Usage: "Whether to use --embed instead of --headless",
+			// Sources: cli.EnvVars("NVRH_CLIENT_USE_NVIM_EMBED"),
+		},
 	},
 
 	Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -166,6 +172,8 @@ var CliClientOpenCommand = cli.Command{
 			TunneledPorts: make(map[string]bool),
 
 			NvimCmd: cmd.StringSlice("nvim-cmd"),
+
+			UseNvimEmbedMode: cmd.Bool("use-nvim-embed"),
 		}
 
 		remoteEnv := cmd.StringSlice("server-env")
