@@ -277,7 +277,7 @@ var CliClientOpenCommand = cli.Command{
 					nvrhContext.RemoteDirectory,
 					remoteEnv,
 					tunnelInfo,
-					false,
+					nvrhContext.UseNvimEmbedMode,
 				)
 
 				err := siNv.ExecLua(
