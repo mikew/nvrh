@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.8.0](https://github.com/mikew/nvrh/compare/v0.7.1...v0.8.0) (2026-03-26)
+
+
+### Features
+
+* Embed mode ([#80](https://github.com/mikew/nvrh/issues/80)) ([efdde5a](https://github.com/mikew/nvrh/commit/efdde5a65ac609bd8531c84cd41c463dadc0eadc)), closes [#79](https://github.com/mikew/nvrh/issues/79)
+
 ## [0.7.1](https://github.com/mikew/nvrh/compare/v0.7.0...v0.7.1) (2026-02-04)
 
 
