@@ -44,6 +44,7 @@ type NvrhConfigServer struct {
 	LocalEditor   []string           `yaml:"local-editor,omitempty"`
 	ServerEnv     []string           `yaml:"server-env,omitempty"`
 	DirectConnect DirectConnectValue `yaml:"insecure-direct-connect,omitempty"`
+	UseNvimEmbed  *bool              `yaml:"use-nvim-embed,omitempty"`
 }
 
 type NvrhConfig struct {
@@ -80,12 +81,13 @@ func LoadConfig(path string) (*NvrhConfig, error) {
 }
 
 var envIndex = map[string][]string{
-	"nvim-cmd":     {"NVRH_CLIENT_NVIM_CMD"},
-	"use-ports":    {"NVRH_CLIENT_USE_PORTS"},
-	"ssh-arg":      {"NVRH_CLIENT_SSH_ARG"},
-	"ssh-path":     {"NVRH_CLIENT_SSH_PATH"},
-	"local-editor": {"NVRH_CLIENT_LOCAL_EDITOR"},
-	"server-env":   {"NVRH_CLIENT_SERVER_ENV"},
+	"nvim-cmd":       {"NVRH_CLIENT_NVIM_CMD"},
+	"use-ports":      {"NVRH_CLIENT_USE_PORTS"},
+	"ssh-arg":        {"NVRH_CLIENT_SSH_ARG"},
+	"ssh-path":       {"NVRH_CLIENT_SSH_PATH"},
+	"local-editor":   {"NVRH_CLIENT_LOCAL_EDITOR"},
+	"server-env":     {"NVRH_CLIENT_SERVER_ENV"},
+	"use-nvim-embed": {"NVRH_CLIENT_USE_NVIM_EMBED"},
 }
 
 type shouldSetFunc func(name string) bool
@@ -180,6 +182,12 @@ func applyServerConfig(c *cli.Command, serverConfig NvrhConfigServer, shouldSet 
 		}
 
 		if err := c.Set("insecure-direct-connect", val); err != nil {
+			return err
+		}
+	}
+
+	if shouldSet("use-nvim-embed") && serverConfig.UseNvimEmbed != nil {
+		if err := c.Set("use-nvim-embed", fmt.Sprintf("%v", *serverConfig.UseNvimEmbed)); err != nil {
 			return err
 		}
 	}

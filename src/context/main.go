@@ -27,6 +27,8 @@ type NvrhContext struct {
 	ServerInfo *NvrhServerInfo
 
 	WindowsLauncherPath string
+
+	UseNvimEmbedMode bool
 }
 
 type NvrhServerInfo struct {
