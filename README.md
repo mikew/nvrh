@@ -48,6 +48,7 @@ OPTIONS:
    --ssh-arg string [ --ssh-arg string ]            Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]
    --enable-automap-ports                           Enable automatic port mapping (default: true) [$NVRH_CLIENT_AUTOMAP_PORTS]
    --insecure-direct-connect string                 Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing
+   --use-nvim-embed                                 Whether to use --embed instead of --headless (default: false)
    --help, -h                                       show help
 ```
 
@@ -73,6 +74,31 @@ OPTIONS:
    --ssh-arg string [ --ssh-arg string ]            Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]
    --insecure-direct-connect string                 Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing
    --help, -h                                       show help
+```
+
+### `nvrh client from-neovim`
+
+```
+NAME:
+   nvrh client from-neovim - Attach a running local neovim UI to a remote nvim instance via SSH
+
+USAGE:
+   nvrh client from-neovim [options] <original-server> <server> [remote-directory]
+
+CATEGORY:
+   client
+
+OPTIONS:
+   --ssh-path string                            Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary [$NVRH_CLIENT_SSH_PATH] (default: "binary")
+   --use-ports                                  Use ports instead of sockets. Defaults to true on Windows [$NVRH_CLIENT_USE_PORTS] (default: false)
+   --debug                                      (default: false) [$NVRH_CLIENT_DEBUG]
+   --server-env string [ --server-env string ]  Environment variables to set on the remote server [$NVRH_CLIENT_SERVER_ENV]
+   --nvim-cmd nvim [ --nvim-cmd nvim ]          Command to run nvim with. Defaults to nvim [$NVRH_CLIENT_NVIM_CMD] (default: "nvim")
+   --ssh-arg string [ --ssh-arg string ]        Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]
+   --enable-automap-ports                       Enable automatic port mapping (default: true) [$NVRH_CLIENT_AUTOMAP_PORTS]
+   --insecure-direct-connect string             Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing
+   --use-nvim-embed                             Whether to use --embed instead of --headless (default: false)
+   --help, -h                                   show help
 ```
 
 ### Launch a different editor
