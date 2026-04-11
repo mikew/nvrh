@@ -732,8 +732,6 @@ var CliClientFromNeovimCommand = cli.Command{
 			slog.Info("Remote nvim exited cleanly")
 			return nil
 		}
-
-		return nil
 	},
 }
 
