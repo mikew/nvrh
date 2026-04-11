@@ -47,6 +47,7 @@ var CliClientCommand = cli.Command{
 	Commands: []*cli.Command{
 		&CliClientOpenCommand,
 		&CliClientReconnectCommand,
+		&CliClientFromNeovimCommand,
 	},
 }
 
@@ -392,6 +393,343 @@ var CliClientOpenCommand = cli.Command{
 				return err
 			}
 			slog.Info("Local nvim exited cleanly")
+			return nil
+		}
+	},
+}
+
+var CliClientFromNeovimCommand = cli.Command{
+	Name:      "from-neovim",
+	Usage:     "Attach a running local neovim UI to a remote nvim instance via SSH",
+	Category:  "client",
+	ArgsUsage: "<original-server> <server> [remote-directory]",
+
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "ssh-path",
+			Usage: "Path to SSH binary. 'binary' will use the default system SSH binary. 'internal' will use the internal SSH client. Anything else will be used as the path to the SSH binary [$NVRH_CLIENT_SSH_PATH]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_PATH"),
+			Value: "binary",
+		},
+
+		&cli.BoolFlag{
+			Name:  "use-ports",
+			Usage: "Use ports instead of sockets. Defaults to true on Windows [$NVRH_CLIENT_USE_PORTS]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_USE_PORTS"),
+			Value: runtime.GOOS == "windows",
+		},
+
+		&cli.BoolFlag{
+			Name:    "debug",
+			Usage:   "",
+			Sources: cli.EnvVars("NVRH_CLIENT_DEBUG"),
+		},
+
+		&cli.StringSliceFlag{
+			Name:  "server-env",
+			Usage: "Environment variables to set on the remote server [$NVRH_CLIENT_SERVER_ENV]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SERVER_ENV"),
+		},
+
+		&cli.StringSliceFlag{
+			Name:  "nvim-cmd",
+			Usage: "Command to run nvim with. Defaults to `nvim` [$NVRH_CLIENT_NVIM_CMD]",
+			Value: []string{"nvim"},
+		},
+
+		&cli.StringSliceFlag{
+			Name:  "ssh-arg",
+			Usage: "Additional arguments to pass to the SSH command [$NVRH_CLIENT_SSH_ARG]",
+			// Sources: cli.EnvVars("NVRH_CLIENT_SSH_ARG"),
+		},
+
+		&cli.BoolFlag{
+			Name:    "enable-automap-ports",
+			Usage:   "Enable automatic port mapping",
+			Sources: cli.EnvVars("NVRH_CLIENT_AUTOMAP_PORTS"),
+			Value:   true,
+		},
+
+		&cli.StringFlag{
+			Name:  "insecure-direct-connect",
+			Usage: "Opens a public port on the server and connects directly to it. Use 'true' to connect to the server you're already passing",
+		},
+
+		&cli.BoolFlag{
+			Name:  "use-nvim-embed",
+			Usage: "Whether to use --embed instead of --headless",
+			// Sources: cli.EnvVars("NVRH_CLIENT_USE_NVIM_EMBED"),
+		},
+	},
+
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		cfg, err := nvrh_config.LoadConfig(nvrh_config.DefaultConfigPath())
+		if err != nil {
+			return err
+		}
+
+		isDebug := cmd.Bool("debug")
+		logger.PrepareLogger(isDebug)
+
+		originalServer := cmd.Args().Get(0)
+		if originalServer == "" {
+			return fmt.Errorf("<original-server> is required")
+		}
+
+		server := cmd.Args().Get(1)
+		if server == "" {
+			return fmt.Errorf("<server> is required")
+		}
+
+		endpoint, endpointErr := ssh_endpoint.ParseSshEndpoint(server)
+		if endpointErr != nil {
+			return endpointErr
+		}
+
+		serverConfig := cfg.Servers[endpoint.GivenHost]
+		if err := nvrh_config.ApplyPrecedence(cmd, cfg.Default, serverConfig); err != nil {
+			return err
+		}
+
+		sessionId := fmt.Sprintf("%d", time.Now().Unix())
+		sshPath := getSshPath(cmd.String("ssh-path"))
+
+		directConnectHost := cmd.String("insecure-direct-connect")
+		if directConnectHost == "true" {
+			directConnectHost = endpoint.FinalHost()
+		}
+
+		// Context with cancellation on SIGINT
+		ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+		defer stop()
+		done := make(chan error, 1)
+
+		// Prepare the context.
+		nvrhContext := &nvrh_context.NvrhContext{
+			SessionId:       sessionId,
+			Endpoint:        endpoint,
+			RemoteDirectory: cmd.Args().Get(2),
+
+			AutomapPorts: cmd.Bool("enable-automap-ports"),
+
+			Debug: isDebug,
+
+			TunneledPorts: make(map[string]bool),
+
+			NvimCmd: cmd.StringSlice("nvim-cmd"),
+
+			UseNvimEmbedMode: cmd.Bool("use-nvim-embed"),
+		}
+
+		remoteEnv := cmd.StringSlice("server-env")
+		sshArgs := cmd.StringSlice("ssh-arg")
+
+		shouldUsePorts := cmd.Bool("use-ports")
+		if directConnectHost != "" {
+			shouldUsePorts = true
+		}
+		remoteSocketPath := fmt.Sprintf("/tmp/nvrh-socket-%s", sessionId)
+		localSocketPath := filepath.Join(os.TempDir(), fmt.Sprintf("nvrh-socket-%s", sessionId))
+
+		randomPort := getRandomPort()
+		localPortNumber := randomPort
+		remotePortNumber := randomPort
+
+		var tunnelInfo *ssh_tunnel_info.SshTunnelInfo
+
+		// Setup SSH client
+		sshClient, sshClientErr := getSshClient(nvrhContext, endpoint, sshPath, sshArgs)
+		if sshClientErr != nil {
+			return sshClientErr
+		}
+		nvrhContext.SshClient = sshClient
+
+		var nv *nvim.Nvim
+		var originalNvim *nvim.Nvim
+
+		// Cleanup on exit
+		defer func() {
+			slog.Info("Cleaning up")
+			closeNvimSocket(nv, false)
+			killAllCmds(nvrhContext.CommandsToKill)
+			os.Remove(localSocketPath)
+			if nvrhContext.SshClient != nil {
+				nvrhContext.SshClient.Close()
+			}
+		}()
+
+		siDone := make(chan error, 1)
+
+		siTunnelInfo := &ssh_tunnel_info.SshTunnelInfo{
+			Mode:              "port",
+			Public:            false,
+			DirectConnectHost: directConnectHost,
+			LocalSocket:       fmt.Sprintf("%d", randomPort),
+			RemoteSocket:      fmt.Sprintf("%d", randomPort),
+		}
+
+		// Start server info nvim instance.
+		slog.Info("Starting server info nvim instance")
+		go func() {
+			// Not quoting here because Powershell doesn't like it without the
+			// preceding ampersand, and we don't know what shell we're using at this
+			// point.
+			nvimCmd := strings.Join(nvrhContext.NvimCmd, " ")
+
+			siDone <- nvrhContext.SshClient.Run(
+				fmt.Sprintf("%s -u NONE --headless --listen \"%s\"", nvimCmd, siTunnelInfo.RemoteBoundToIp()),
+				siTunnelInfo,
+			)
+		}()
+
+		// Grab server info and potentially prepare Windows.
+		go func() {
+			siNv, err := nvim_helpers.WaitForNvim(ctx, siTunnelInfo)
+
+			if err != nil {
+				siDone <- err
+				return
+			}
+
+			var serverInfoString string
+			var serverInfo *nvrh_context.NvrhServerInfo
+			siNv.ExecLua(bridge_files.ReadFileWithoutError("lua/determine_server_info.lua"), &serverInfoString, nil)
+			json.Unmarshal([]byte(serverInfoString), &serverInfo)
+
+			nvrhContext.ServerInfo = serverInfo
+
+			if nvrhContext.ServerInfo.Os == "windows" {
+				shouldUsePorts = true
+
+				nvrhContext.WindowsLauncherPath = fmt.Sprintf(
+					`%s\nvim-launcher-%s.bat`,
+					nvrhContext.ServerInfo.Tmpdir,
+					nvrhContext.SessionId,
+				)
+
+				tunnelInfo = &ssh_tunnel_info.SshTunnelInfo{
+					Mode:              "port",
+					DirectConnectHost: directConnectHost,
+					LocalSocket:       fmt.Sprintf("%d", localPortNumber),
+					RemoteSocket:      fmt.Sprintf("%d", remotePortNumber),
+					Public:            false,
+				}
+
+				nvimCmd := nvim_helpers.BuildRemoteCommandString(
+					nvrhContext.NvimCmd,
+					"bat",
+					nvrhContext.RemoteDirectory,
+					remoteEnv,
+					tunnelInfo,
+					nvrhContext.UseNvimEmbedMode,
+				)
+
+				err := siNv.ExecLua(
+					bridge_files.ReadFileWithoutError("lua/setup_remote_file.lua"), nil,
+					nvrhContext.WindowsLauncherPath,
+					nvimCmd,
+				)
+
+				if err != nil {
+					siDone <- err
+					return
+				}
+			}
+
+			siNv.ExecLua("vim.cmd('qall!')", nil, nil)
+			siNv.Close()
+
+			siDone <- nil
+		}()
+
+		// Wait for server info process to finish.
+		select {
+		case <-ctx.Done():
+			slog.Warn("Interrupted by user")
+			return ctx.Err()
+		case err := <-siDone:
+			if err != nil {
+				slog.Error("Error while getting server info", "err", err)
+				return err
+			}
+		}
+
+		// Even though this happens in the Windows Server path, we still need a
+		// check here in case that path isn't hit.
+		if tunnelInfo == nil {
+			tunnelInfo = &ssh_tunnel_info.SshTunnelInfo{
+				Mode:              "unix",
+				DirectConnectHost: directConnectHost,
+				LocalSocket:       localSocketPath,
+				RemoteSocket:      remoteSocketPath,
+				Public:            false,
+			}
+		}
+
+		if shouldUsePorts {
+			tunnelInfo.SwitchToPorts(localPortNumber, remotePortNumber)
+		}
+
+		// Start remote nvim
+
+		go func() {
+			var nvimCommandString string
+			if nvrhContext.ServerInfo.Os == "windows" {
+				if nvrhContext.ServerInfo.ShellName == "bash" {
+					nvimCommandString = fmt.Sprintf("/tmp/nvim-launcher-%s.bat", nvrhContext.SessionId)
+				} else {
+					nvimCommandString = nvrhContext.WindowsLauncherPath
+				}
+			} else {
+				nvimCommandString = nvim_helpers.BuildRemoteCommandString(
+					nvrhContext.NvimCmd,
+					nvrhContext.ServerInfo.ShellName,
+					nvrhContext.RemoteDirectory,
+					remoteEnv,
+					tunnelInfo,
+					nvrhContext.UseNvimEmbedMode,
+				)
+			}
+
+			slog.Info("Starting remote nvim", "nvimCommandString", nvimCommandString)
+			done <- nvrhContext.SshClient.Run(nvimCommandString, tunnelInfo)
+			// Call stop so WaitForNvim can exit.
+			stop()
+		}()
+
+		// Wait for remote nvim
+		nv, err = nvim_helpers.WaitForNvim(ctx, tunnelInfo)
+		if err != nil {
+			return fmt.Errorf("failed to connect to remote nvim: %w", err)
+		}
+
+		// Prepare remote nvim
+		if err := prepareRemoteNvim(nvrhContext, nv, cmd.Root().Version, tunnelInfo); err != nil {
+			slog.Warn("Error preparing remote nvim", "err", err)
+		}
+
+		// Connect original nvim to new nvim
+		originalNvim, err = nvim.Dial(originalServer)
+		if err != nil {
+			return fmt.Errorf("failed to connect to original nvim server %s: %w", originalServer, err)
+		}
+
+		connectAddr := tunnelInfo.LocalBoundToIp()
+		if err := originalNvim.Command(fmt.Sprintf("connect %s", connectAddr)); err != nil {
+			return fmt.Errorf("failed to send connect command: %w", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			slog.Warn("Interrupted by user")
+			originalNvim.Close()
+			return ctx.Err()
+		case err := <-done:
+			if err != nil {
+				slog.Error("Remote nvim exited with error", "err", err)
+				return err
+			}
+			slog.Info("Remote nvim exited cleanly")
 			return nil
 		}
 	},
