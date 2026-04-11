@@ -19,6 +19,8 @@ if _G._nvrh_is_initialized ~= true then
     server_info = vim.json.decode(nvrh_server_info),
   }
 
+  _G._nvrh_ui_is_detatching = false
+
   function _G._nvrh.get_nvrh_channels()
     ---@type NvrhChannel[]
     local nvrh_channels = {}
@@ -57,10 +59,24 @@ if _G._nvrh_is_initialized ~= true then
     end,
   })
 
+  -- Detach without quitting.
+  vim.api.nvim_create_user_command('NvrhDetach', function()
+    _G._nvrh_ui_is_detatching = true
+    vim.cmd('detach')
+  end, {
+    nargs = 0,
+    force = true,
+  })
+
   -- Exit if last client disconnects.
   vim.api.nvim_create_autocmd('UILeave', {
     nested = true,
     callback = function(args)
+      if _G._nvrh_ui_is_detatching then
+        _G._nvrh_ui_is_detatching = false
+        return
+      end
+
       if #vim.api.nvim_list_uis() == 0 then
         -- TODO No idea why cleanup is needed here, it should be handled by
         -- VimLeavePre, and seems to work fine when `qall` is used in nvrh.

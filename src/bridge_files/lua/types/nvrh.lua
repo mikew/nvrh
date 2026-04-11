@@ -13,5 +13,3 @@ _G._nvrh_is_initialized = nil
 
 ---@type fun(filename: string, line?: number, col?: number): nil
 _G.nvrh_open_file_handler = nil
-
-should_initialize = false
