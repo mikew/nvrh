@@ -107,7 +107,12 @@ If your Neovim UI supports `:connect`, you can add nvrh to get an `:NvrhConnect`
 command that will connect your currently running Neovim UI to a remote.
 
 ```lua
-vim.pack.add({ 'https://github.com/mikew/nvrh' })
+vim.pack.add({
+  {
+    src = 'https://github.com/mikew/nvrh',
+    version = vim.version.range('*'),
+  },
+})
 ```
 
 Then
