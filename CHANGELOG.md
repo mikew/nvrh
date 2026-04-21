@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.9.0](https://github.com/mikew/nvrh/compare/v0.8.0...v0.9.0) (2026-04-21)
+
+
+### Features
+
+* Add `:NvrhDetach` command ([#85](https://github.com/mikew/nvrh/issues/85)) ([4011e96](https://github.com/mikew/nvrh/commit/4011e96fa75b89ced87f3fa8536e4c22e0068c92))
+* Add `client from-neovim` command ([#83](https://github.com/mikew/nvrh/issues/83)) ([ddc23ce](https://github.com/mikew/nvrh/commit/ddc23ce47f482de0fdca022873968dcec15420ad)), closes [#82](https://github.com/mikew/nvrh/issues/82)
+* Add plugin with `:NvrhOpen` command ([#86](https://github.com/mikew/nvrh/issues/86)) ([f292de3](https://github.com/mikew/nvrh/commit/f292de3064f37190e0b6510b60505599c6ace03b))
+
 ## [0.8.0](https://github.com/mikew/nvrh/compare/v0.7.1...v0.8.0) (2026-03-26)
 
 
