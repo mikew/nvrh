@@ -101,6 +101,21 @@ OPTIONS:
    --help, -h                                   show help
 ```
 
+### Neovim Plugin
+
+If your Neovim UI supports `:connect`, you can add nvrh to get an `:NvrhConnect`
+command that will connect your currently running Neovim UI to a remote.
+
+```lua
+vim.pack.add({ 'https://github.com/mikew/nvrh' })
+```
+
+Then
+
+```vim
+:NvrhConnect my-remote-server path/to/project
+```
+
 ### Launch a different editor
 
 By default nvrh runs `nvim`, but you can run something else with
